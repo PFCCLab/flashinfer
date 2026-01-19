@@ -17,8 +17,6 @@ limitations under the License.
 import ctypes
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
-import paddle
-paddle.compat.enable_torch_proxy()
 import torch.distributed as dist
 from paddle.base.core import ProcessGroup
 
@@ -206,7 +204,7 @@ def create_shared_buffer(
     handle = cudart.cudaIpcGetMemHandle(pointer)
     if group is None:
         group = dist.group.WORLD
-    world_size = dist.get_world_size(group=group)
+    # world_size = dist.get_world_size(group=group)
     rank = dist.get_rank(group=group)
     # handles = [None] * world_size
     # dist.all_gather_object(handles, handle, group=group)
@@ -215,7 +213,7 @@ def create_shared_buffer(
 
     # The behavior of the paddle framework and torch framework is inconsistent,
     #  so the following code is used instead
-    handles = []
+    handles = [None]
     dist.all_gather_object(handles, handle, group=group)
 
     pointers: List[int] = []

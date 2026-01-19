@@ -20,8 +20,6 @@ from ctypes import c_void_p, cast
 from types import SimpleNamespace
 from typing import List, Optional, Tuple, Union
 
-import paddle
-paddle.compat.enable_torch_proxy()
 import torch
 import torch.distributed as dist
 from paddle.base.core import ProcessGroup
@@ -610,9 +608,7 @@ def trtllm_create_ipc_workspace_for_all_reduce_fusion(
 
     # There is a bug in the paddle framework when device="CUDA".
     # Currently, the bug is being avoided by changing the source code.
-    workspace_tensor = torch.tensor(
-        workspace, dtype=torch.int64
-    )
+    workspace_tensor = torch.tensor(workspace, dtype=torch.int64)
 
     dist.barrier(group=group)  # must sync after create_workspace
 
