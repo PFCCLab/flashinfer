@@ -20,9 +20,11 @@ from ctypes import c_void_p, cast
 from types import SimpleNamespace
 from typing import List, Optional, Tuple, Union
 
+import paddle
+paddle.compat.enable_torch_proxy()
 import torch
 import torch.distributed as dist
-from torch.distributed import ProcessGroup
+from paddle.base.core import ProcessGroup
 
 from ..jit.comm import gen_trtllm_comm_module
 from ..utils import register_custom_op, round_up
@@ -602,8 +604,14 @@ def trtllm_create_ipc_workspace_for_all_reduce_fusion(
         print(f"Rank {tp_rank} workspace[{i}] {hex(workspace[i])}")
 
     # Store workspace pointers in device tensor
+    # workspace_tensor = torch.tensor(
+    #     workspace, dtype=torch.int64, device=torch.device("cuda")
+    # )
+
+    # There is a bug in the paddle framework when device="CUDA".
+    # Currently, the bug is being avoided by changing the source code.
     workspace_tensor = torch.tensor(
-        workspace, dtype=torch.int64, device=torch.device("cuda")
+        workspace, dtype=torch.int64
     )
 
     dist.barrier(group=group)  # must sync after create_workspace

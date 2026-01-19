@@ -17,9 +17,10 @@ limitations under the License.
 import ctypes
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
-
+import paddle
+paddle.compat.enable_torch_proxy()
 import torch.distributed as dist
-from torch.distributed import ProcessGroup
+from paddle.base.core import ProcessGroup
 
 # NOTE(Zihao): we should use cuda-python instead of ctypes cuda runtime bindings.
 # However, cuda-python's API is not stable yet, so we use ctypes bindings instead.
@@ -207,9 +208,14 @@ def create_shared_buffer(
         group = dist.group.WORLD
     world_size = dist.get_world_size(group=group)
     rank = dist.get_rank(group=group)
-    handles = [None] * world_size
-    dist.all_gather_object(handles, handle, group=group)
-    handles = [None] * world_size
+    # handles = [None] * world_size
+    # dist.all_gather_object(handles, handle, group=group)
+    # handles = [None] * world_size
+    # dist.all_gather_object(handles, handle, group=group)
+
+    # The behavior of the paddle framework and torch framework is inconsistent,
+    #  so the following code is used instead
+    handles = []
     dist.all_gather_object(handles, handle, group=group)
 
     pointers: List[int] = []

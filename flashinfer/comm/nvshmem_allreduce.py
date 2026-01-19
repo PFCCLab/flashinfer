@@ -17,7 +17,7 @@ limitations under the License.
 from typing import Optional
 
 import torch
-from torch.distributed import ProcessGroup
+from paddle.base.core import ProcessGroup
 
 from .nvshmem import get_nvshmem_module
 
