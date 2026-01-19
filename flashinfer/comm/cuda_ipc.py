@@ -213,6 +213,8 @@ def create_shared_buffer(
 
     # The behavior of the paddle framework and torch framework is inconsistent,
     #  so the following code is used instead
+    # TODO(bingoo): The PR(https://github.com/PaddlePaddle/Paddle/pull/77152)
+    #  has been fixed.
     handles = [None]
     dist.all_gather_object(handles, handle, group=group)
 
