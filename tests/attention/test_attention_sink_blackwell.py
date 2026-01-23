@@ -13,7 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 import paddle
+
 paddle.compat.enable_torch_proxy()
 import einops
 import pytest
@@ -22,7 +24,7 @@ import numpy as np
 from tests.test_helpers.sink_attention_reference import sink_attention_unified
 
 import flashinfer
-from flashinfer.utils import get_compute_capability
+# from flashinfer.utils import get_compute_capability
 
 
 # @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])

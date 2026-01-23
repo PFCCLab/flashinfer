@@ -311,8 +311,9 @@ def sink_attention_unified(
             # mask = torch.arange(kv_len - qo_len, kv_len, device=q.device).unsqueeze(
             #     1
             # ) >= torch.arange(0, kv_len, device=q.device).unsqueeze(0)
-            mask = torch.arange(kv_len - qo_len, kv_len).unsqueeze(
-                1) >= torch.arange(0, kv_len).unsqueeze(0)
+            mask = torch.arange(kv_len - qo_len, kv_len).unsqueeze(1) >= torch.arange(
+                0, kv_len
+            ).unsqueeze(0)
             if window_left >= 0:
                 row_idx = torch.arange(qo_len, dtype=torch.int32, device=q.device)[
                     :, None

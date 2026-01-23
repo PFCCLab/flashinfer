@@ -717,8 +717,10 @@ class AutoTuner:
         input_shapes: Tuple[torch.Size],
         tuning_config: TuningConfig,
     ) -> Tuple:
-        if hasattr(input_shapes, '__len__'):
-            shapes_tuple = tuple(tuple(s) if hasattr(s, '__iter__') else s for s in input_shapes)
+        if hasattr(input_shapes, "__len__"):
+            shapes_tuple = tuple(
+                tuple(s) if hasattr(s, "__iter__") else s for s in input_shapes
+            )
         else:
             shapes_tuple = input_shapes
         return (
