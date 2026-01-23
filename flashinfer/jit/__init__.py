@@ -105,7 +105,6 @@ def find_loaded_library(lib_name) -> Optional[str]:
     )
     return path
 
-
 cuda_lib_path = os.environ.get(
     "CUDA_LIB_PATH", "/usr/local/cuda/targets/x86_64-linux/lib/"
 )
