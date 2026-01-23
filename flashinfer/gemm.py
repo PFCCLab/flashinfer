@@ -562,9 +562,7 @@ def get_tgv_gemm_sm10x_module(
                 # tgv_gemm takes mat1 as weights and mat2 as input tensor
                 # from [m,k]x[k,n]+[n,] to [n,k]x[k,m]+[n,]
                 gemm_fn = module.tgv_gemm
-                c = torch.empty(
-                    (a.shape[0], b.shape[1]), dtype=a.dtype, device=a.place
-                )
+                c = torch.empty((a.shape[0], b.shape[1]), dtype=a.dtype, device=a.place)
                 gemm_fn(b.t(), a.t(), bias, tactic, c, pdl)
                 return c
 
@@ -2078,12 +2076,12 @@ def bmm_fp8(
     if out is None:
         out = torch.empty(
             (A.shape[0], A.shape[1], B.shape[2]),
-            device=a.place,
+            device=A.place,
             dtype=dtype,
         )
 
     workspace_buffer = _get_cache_buf(
-        "bmm_fp8_workspace", DEFAULT_WORKSPACE_SIZE, a.place
+        "bmm_fp8_workspace", DEFAULT_WORKSPACE_SIZE, A.place
     )
 
     if backend == "cudnn":

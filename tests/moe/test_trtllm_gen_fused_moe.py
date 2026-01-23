@@ -13,7 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 import paddle
+
 paddle.compat.enable_torch_proxy()
 import functools
 from typing import Tuple
@@ -48,7 +50,9 @@ from flashinfer.fused_moe.core import (
     get_w2_permute_indices_with_cache,
     _maybe_get_cached_w3_w1_permute_indices,
 )
-from flashinfer.utils import calculate_tile_tokens_dim, get_compute_capability
+
+# from flashinfer.utils import calculate_tile_tokens_dim, get_compute_capability
+from flashinfer.utils import calculate_tile_tokens_dim
 
 
 @functools.cache
@@ -2504,10 +2508,7 @@ def test_moe_quantization_classes(
     else:
         # Other routing methods (Renormalize, RenormalizeNaive, Llama4) use bfloat16
         expert_logits = torch.randn((num_tokens, num_experts), device="cuda")
-        print("oringingin expert_logits:", expert_logits)
-        expert_logits = expert_logits.to(
-            torch.bfloat16
-        )
+        expert_logits = expert_logits.to(torch.bfloat16)
     # torch.set_printoptions(edgeitems=1000)  # 显示更多边缘项
     # torch.set_printoptions(linewidth=1000)  # 增加每行宽度
     print("expert_logits:", expert_logits)

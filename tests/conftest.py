@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Set
 
 import paddle
+
 paddle.compat.enable_torch_proxy()
 import pytest
 import torch
@@ -12,7 +13,7 @@ import torch
 # from torch.torch_version import __version__ as torch_version
 
 import flashinfer
-from flashinfer.jit import MissingJITCacheError
+# from flashinfer.jit import MissingJITCacheError
 
 # Global tracking for JIT cache coverage
 # Store tuples of (test_name, module_name, spec_info)
@@ -128,8 +129,8 @@ def _monkeypatch_add_torch_compile(func):
 
 def pytest_configure(config):
     if os.environ.get("FLASHINFER_TEST_TORCH_COMPILE", "0") == "1":
-        if torch_version < TorchVersion("2.4"):
-            pytest.skip("torch.compile requires torch >= 2.4")
+        # if torch_version < TorchVersion("2.4"):
+        #     pytest.skip("torch.compile requires torch >= 2.4")
         _set_torch_compile_options()
         for fn in TORCH_COMPILE_FNS:
             _monkeypatch_add_torch_compile(fn)
@@ -144,8 +145,8 @@ def pytest_runtest_call(item):
     # skip OOM error and missing JIT cache errors
     try:
         item.runtest()
-    except:
-       assert(False)
+    except Exception:
+        raise
     # try:
     #     item.runtest()
     # except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
