@@ -203,7 +203,8 @@ def create_shared_buffer(
     pointer = cudart.cudaMalloc(size_in_bytes)
     handle = cudart.cudaIpcGetMemHandle(pointer)
     if group is None:
-        group = dist.group.WORLD
+        # group = dist.group.WORLD
+        group = dist.get_group()
     # world_size = dist.get_world_size(group=group)
     rank = dist.get_rank(group=group)
     # handles = [None] * world_size

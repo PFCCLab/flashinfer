@@ -767,9 +767,22 @@ _use_oneshot_heuristics: dict[int, int] = {
 def _should_use_oneshot(
     token_num: int, hidden_dim: int, dtype: torch.dtype, world_size: int
 ) -> bool:
-    comm_size_mb = (
-        token_num * hidden_dim * 2 * world_size * dtype.itemsize / 1024 / 1024
-    )
+    DTYPE_SIZE_MAP = {
+        torch.float16: 2,
+        torch.bfloat16: 2,
+        torch.float32: 4,
+        torch.float64: 8,
+        torch.int8: 1,
+        torch.int16: 2,
+        torch.int32: 4,
+        torch.int64: 8,
+        torch.uint8: 1,
+        torch.bool: 1,
+        torch.complex64: 8,
+        torch.complex128: 16,
+    }
+    itemsize = DTYPE_SIZE_MAP[dtype]
+    comm_size_mb = token_num * hidden_dim * 2 * world_size * itemsize / 1024 / 1024
     return comm_size_mb <= _use_oneshot_heuristics[world_size]
 
 
