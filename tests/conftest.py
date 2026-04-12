@@ -6,7 +6,7 @@ from typing import Any, Dict, Set
 
 import paddle
 
-paddle.compat.enable_torch_proxy()
+paddle.enable_compat()
 import pytest
 import torch
 # from torch.torch_version import TorchVersion

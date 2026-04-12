@@ -16,7 +16,7 @@ limitations under the License.
 
 import paddle
 
-paddle.compat.enable_torch_proxy()
+paddle.enable_compat()
 import einops
 import pytest
 import torch
