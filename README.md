@@ -35,7 +35,7 @@ Kernel Library for LLM Serving ❤️ PaddlePadddle
 >
 > ```python
 > import paddle
-> paddle.compat.enable_torch_proxy(scope={"flashinfer"})  # Enable torch proxy before importing flashinfer
+> paddle.enable_compat(scope={"flashinfer"})  # Enable torch proxy before importing flashinfer
 > import flashinfer
 > # use flashinfer
 > ```

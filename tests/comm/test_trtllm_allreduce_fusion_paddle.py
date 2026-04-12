@@ -73,7 +73,7 @@ def kernel(workspace_tensor, rank, world_size):
 
 def _run_simple_worker(world_size, rank, distributed_init_port):
     # Create workspace
-    # paddle.compat.enable_torch_proxy()
+    # paddle.enable_compat()
     # Set all required environment variables
     os.environ["FLAGS_SELECTED_GPUS"] = str(rank)  # Key: set GPU ID
     os.environ["PADDLE_TRAINER_ID"] = str(rank)
