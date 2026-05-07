@@ -56,7 +56,7 @@ from typing import Union, Literal, Optional, Tuple, List, cast, Any
 from .workspace_base import AllReduceFusionWorkspace
 
 import torch
-from torch.distributed import ProcessGroup
+from paddle.base.core import ProcessGroup
 
 from flashinfer.api_logging import flashinfer_api
 from flashinfer.trace.templates.comm import allreduce_fusion_trace

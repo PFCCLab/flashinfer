@@ -798,7 +798,7 @@ def trtllm_batch_decode_with_kv_cache_mla(
             sparse_mla_top_k,
             sm_count,
             enable_pdl,
-            workspace_buffer.numel() * workspace_buffer.element_size(),
+            int(workspace_buffer.numel() * workspace_buffer.element_size()),
             sinks,
             None,  # cum_seq_lens_q
             None,  # key_block_scales

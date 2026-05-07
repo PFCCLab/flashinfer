@@ -22,8 +22,17 @@ from typing import Callable, Dict, Iterable, Optional, Sequence, Tuple, Union
 import torch
 import torch.version
 import pynvml
-from torch.torch_version import TorchVersion
-from torch.torch_version import __version__ as torch_version
+
+try:
+    from torch.torch_version import TorchVersion
+    from torch.torch_version import __version__ as torch_version
+except (ImportError, AttributeError):
+    # Paddle compat: torch.torch_version is not exposed by paddle proxy
+    class TorchVersion(str):  # type: ignore[no-redef]
+        def __lt__(self, other):
+            return False
+
+    torch_version = TorchVersion(torch.__version__)
 import inspect
 
 from .jit.spdlog import gen_spdlog_module

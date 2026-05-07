@@ -2,8 +2,17 @@ import functools
 from typing import Any
 
 import torch
-import torch.distributed._symmetric_memory as symm_mem
-import torch.distributed.distributed_c10d as c10d
+
+# Paddle compat: torch.distributed._symmetric_memory is not available under paddle proxy.
+try:
+    import torch.distributed._symmetric_memory as symm_mem
+    import torch.distributed.distributed_c10d as c10d
+
+    _SYMM_MEM_AVAILABLE = True
+except (ImportError, ModuleNotFoundError):
+    symm_mem = None
+    c10d = None
+    _SYMM_MEM_AVAILABLE = False
 
 _compat_patched = False
 

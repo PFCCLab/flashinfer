@@ -19,7 +19,7 @@ from typing import Optional
 
 import numpy as np
 import torch
-from torch.distributed import ProcessGroup
+from paddle.base.core import ProcessGroup
 
 import nvshmem.core
 from cuda.core import Buffer, Device

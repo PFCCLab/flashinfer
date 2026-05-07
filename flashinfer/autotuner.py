@@ -17,6 +17,16 @@ from typing import Any, Callable, Dict, List, Set, Tuple, Union, Optional
 
 import torch
 
+# Paddle compat: `torch.cuda.OutOfMemoryError` is missing; use an unreachable sentinel
+# so the existing `except _CudaOutOfMemoryError:` clauses don't silently swallow other errors.
+try:
+    _CudaOutOfMemoryError = torch.cuda.OutOfMemoryError  # type: ignore[attr-defined]
+except AttributeError:
+
+    class _CudaOutOfMemoryError(Exception):  # type: ignore[no-redef]
+        """Placeholder for torch.cuda.OutOfMemoryError under paddle compat."""
+
+
 # from tensorrt_llm.bindings.internal.runtime import delay_kernel
 # from tensorrt_llm.logger import logger
 from flashinfer.tllm_utils import delay_kernel
@@ -1175,7 +1185,7 @@ class AutoTuner:
                                     time_measured = self._profile_single_kernel(
                                         r, tensors, tac, tuning_config, **kwargs
                                     )
-                                except torch.cuda.OutOfMemoryError:
+                                except _CudaOutOfMemoryError:
                                     raise
                                 except Exception as e:
                                     skipped_count += 1
@@ -1251,7 +1261,7 @@ class AutoTuner:
                                 f"[Autotuner]: profiling chosen runner: {runners[runner_id]} {tactic} for {cache_key}"
                             )
 
-                except torch.cuda.OutOfMemoryError:
+                except _CudaOutOfMemoryError:
                     torch.cuda.empty_cache()
                     logger.warning(
                         "[Autotuner]: OOM detected, falling back to default tactic"
@@ -1275,7 +1285,7 @@ class AutoTuner:
     def _get_input_sizes(self, inputs: List[torch.Tensor]) -> List[torch.Size]:
         """Return ``torch.Size`` for each input, using ``(0,)`` for non-Tensor values."""
         sizes = [
-            input.size() if isinstance(input, torch.Tensor) else torch.Size((0,))
+            tuple(input.size()) if isinstance(input, torch.Tensor) else (0,)
             for input in inputs
         ]
 
