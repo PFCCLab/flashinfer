@@ -215,7 +215,8 @@ def create_shared_buffer(
     #  so the following code is used instead
     # TODO(bingoo): The PR(https://github.com/PaddlePaddle/Paddle/pull/77152)
     #  has been fixed.
-    handles = [None]
+    # handles = [None]
+    handles = []
     dist.all_gather_object(handles, handle, group=group)
 
     pointers: List[int] = []
