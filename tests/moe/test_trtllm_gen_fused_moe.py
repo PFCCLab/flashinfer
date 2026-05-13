@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import paddle
+
+paddle.enable_compat()
 import pytest
 from abc import ABC, abstractmethod
 from typing import Dict
@@ -948,7 +951,7 @@ class FP8BlockScaleMoe(Moe):
                     block = x[start_m:end_m, start_n:end_n]
 
                     # Per-block quantization logic
-                    min_val, max_val = block.aminmax()
+                    min_val, max_val = block.float().aminmax()
                     amax = torch.maximum(min_val.abs(), max_val.abs()).clamp(min=1e-12)
                     scale = finfo.max / amax
 
@@ -956,8 +959,9 @@ class FP8BlockScaleMoe(Moe):
                     quantized_block = (block * scale).clamp(
                         min=finfo.min, max=finfo.max
                     )
-                    quantized_x[start_m:end_m, start_n:end_n] = quantized_block.to(
-                        dtype
+                    # Paddle compat: fp8 set_value_with_tensor kernel missing; use int8 view
+                    quantized_x.view(torch.int8)[start_m:end_m, start_n:end_n] = (
+                        quantized_block.to(dtype).view(torch.int8)
                     )
                     scales[i, j] = scale.float().reciprocal()
 
@@ -1656,7 +1660,7 @@ class moe_args_dequant:
 def routing_reference(expertLogits, topK, padding):
     """Reference routing implementation for permutation calculation."""
     originalDevice = expertLogits.device
-    expertLogits = expertLogits.cpu()
+    expertLogits = expertLogits.cpu().float()
     numTokens, numExperts = expertLogits.shape
     assert topK <= numExperts
 
@@ -2684,7 +2688,7 @@ def run_moe_test(
     moe_impl._cache_permute_indices = cache_permute_indices
 
     seed = 0
-    torch.random.manual_seed(seed)
+    torch.manual_seed(seed)
 
     # Extract routing configuration
     top_k = routing_config["top_k"]
@@ -4391,7 +4395,7 @@ def test_routing_dtype_flexibility(
 
 def test_fp8_block_scale_routed_activation_type_relu2_smoke():
     """Smoke test routed FP8 block-scale call path with explicit non-gated activation_type."""
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] not in [10]:
         pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
 

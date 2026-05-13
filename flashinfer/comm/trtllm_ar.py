@@ -24,13 +24,13 @@ from typing_extensions import deprecated
 from flashinfer.comm.mnnvl import CommBackend, SymmDeviceMemory, TorchDistBackend
 import torch
 import torch.distributed as dist
-from torch.distributed import ProcessGroup
+from paddle.base.core import ProcessGroup
 
 from ..jit.comm import gen_trtllm_comm_module
 from ..utils import register_custom_op, round_up
 
 logger = logging.getLogger(__name__)
-from .cuda_ipc import cudart
+from .cuda_ipc import cudart, create_shared_buffer
 from .torch_symmetric_memory import _alloc_symm_buffer_bytes
 
 
@@ -629,36 +629,42 @@ def trtllm_create_ipc_workspace_for_all_reduce_fusion(
     lamport_buffer_size = lamport_comm_size * 3
 
     device = torch.device(f"cuda:{torch.cuda.current_device()}")
-    group_name = (
-        group.group_name
-        if group is not None
-        else torch.distributed.group.WORLD.group_name
-    )
+
+    # Paddle compat: symmetric memory is not available; fall back to cudaIpc-based shared buffers.
+    from .torch_symmetric_memory import _SYMM_MEM_AVAILABLE
+
     symm_refs: list[torch.Tensor] = []
-
-    # we should init 3 buffers for all reduce fusion:
-    # [buffer_size, flag_size, lamport_buffer_size]
-
     ipc_handles: List[List[int]] = list()
     mem_handles: List[SymmDeviceMemory] = list()
     lamport_buffer_dtype = torch.float16 if not use_fp32_lamport else torch.float32
-    for size, dtype in [
-        (buffer_size, torch.float32),
-        (flag_size, torch.int32),
-        (lamport_buffer_size, lamport_buffer_dtype),
-    ]:
-        aligned_size = round_up(size, 16)
 
-        ptrs, tensor, handle = _alloc_symm_buffer_bytes(
-            aligned_size,
-            tp_size,
-            dtype,
-            device,
-            group_name,
+    if not _SYMM_MEM_AVAILABLE:
+        for size in [buffer_size, flag_size, lamport_buffer_size]:
+            aligned_size = round_up(size, 1 << 21)
+            ipc_handles.append(create_shared_buffer(aligned_size, group))
+    else:
+        group_name = (
+            group.group_name
+            if group is not None
+            else torch.distributed.group.WORLD.group_name
         )
-        symm_refs.append((tensor, handle))
-        ipc_handles.append(ptrs)
-        mem_handles.append(handle)
+        for size, dtype in [
+            (buffer_size, torch.float32),
+            (flag_size, torch.int32),
+            (lamport_buffer_size, lamport_buffer_dtype),
+        ]:
+            aligned_size = round_up(size, 16)
+
+            ptrs, tensor, handle = _alloc_symm_buffer_bytes(
+                aligned_size,
+                tp_size,
+                dtype,
+                device,
+                group_name,
+            )
+            symm_refs.append((tensor, handle))
+            ipc_handles.append(ptrs)
+            mem_handles.append(handle)
 
     logger.debug(
         "rank %s allocated ipc_handles: %s",
@@ -712,10 +718,9 @@ def trtllm_create_ipc_workspace_for_all_reduce_fusion(
     for i in range(len(workspace)):
         logger.debug("Rank %s workspace[%d] %s", tp_rank, i, hex(workspace[i]))
 
-    # Store workspace pointers in device tensor
-    workspace_tensor = torch.tensor(
-        workspace, dtype=torch.int64, device=torch.device("cuda")
-    )
+    # Store workspace pointers in device tensor.
+    # Paddle compat: torch.tensor(..., device=torch.device("cuda")) is buggy; use .cuda().
+    workspace_tensor = torch.tensor(workspace, dtype=torch.int64).cuda()
 
     if use_symm_dev_mem:
         comm_backend.barrier()  # must sync after create_workspace
@@ -891,11 +896,37 @@ _use_oneshot_heuristics: dict[int, int] = {
 }
 
 
+# Paddle compat: paddle.dtype has no `itemsize` attribute; maintain a mapping fallback.
+_DTYPE_SIZE_MAP: dict = {
+    torch.float16: 2,
+    torch.bfloat16: 2,
+    torch.float32: 4,
+    torch.float64: 8,
+    torch.int8: 1,
+    torch.int16: 2,
+    torch.int32: 4,
+    torch.int64: 8,
+    torch.uint8: 1,
+    torch.bool: 1,
+    torch.complex64: 8,
+    torch.complex128: 16,
+}
+
+
+def _dtype_itemsize(dtype) -> int:
+    itemsize = getattr(dtype, "itemsize", None)
+    if itemsize is not None:
+        return itemsize
+    if dtype in _DTYPE_SIZE_MAP:
+        return _DTYPE_SIZE_MAP[dtype]
+    raise TypeError(f"Cannot determine itemsize for dtype {dtype!r}")
+
+
 def _should_use_oneshot(
     token_num: int, hidden_dim: int, dtype: torch.dtype, world_size: int
 ) -> bool:
     comm_size_mb = (
-        token_num * hidden_dim * 2 * world_size * dtype.itemsize / 1024 / 1024
+        token_num * hidden_dim * 2 * world_size * _dtype_itemsize(dtype) / 1024 / 1024
     )
     return comm_size_mb <= _use_oneshot_heuristics[world_size]
 

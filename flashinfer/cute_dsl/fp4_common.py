@@ -19,6 +19,8 @@ This module contains shared PTX intrinsics, helper functions, and reduction
 utilities used by both rmsnorm_fp4quant.py and add_rmsnorm_fp4quant.py.
 """
 
+from __future__ import annotations
+
 import functools
 import math
 import operator

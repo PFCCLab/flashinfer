@@ -29,8 +29,11 @@ Example (run with torchrun or mp.spawn across all GPU ranks)::
 
     import torch
     import torch.distributed as dist
-    import torch.distributed._symmetric_memory as symm_mem
-    from flashinfer.comm import all_gather_matmul
+    try:
+        import torch.distributed._symmetric_memory as symm_mem
+    except (ImportError, ModuleNotFoundError):
+        symm_mem = None
+        from flashinfer.comm import all_gather_matmul
 
     # --- per-rank setup ---
     device = torch.device(f"cuda:{rank}")

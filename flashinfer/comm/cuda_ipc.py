@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import torch.distributed as dist
-from torch.distributed import ProcessGroup
+from paddle.base.core import ProcessGroup
 
 # NOTE(Zihao): we should use cuda-python instead of ctypes cuda runtime bindings.
 # However, cuda-python's API is not stable yet, so we use ctypes bindings instead.
@@ -204,13 +204,23 @@ def create_shared_buffer(
     pointer = cudart.cudaMalloc(size_in_bytes)
     handle = cudart.cudaIpcGetMemHandle(pointer)
     if group is None:
-        group = dist.group.WORLD
+        try:
+            group = dist.group.WORLD
+        except AttributeError:
+            import paddle.distributed as _pdist
+
+            group = _pdist.get_group()
     world_size = dist.get_world_size(group=group)
     rank = dist.get_rank(group=group)
-    handles = [None] * world_size
+    # Paddle compat: dist.all_gather_object uses append semantics rather than index
+    # assignment; start with a single placeholder and trim it after the gather.
+    handles: list = []
     dist.all_gather_object(handles, handle, group=group)
-    handles = [None] * world_size
-    dist.all_gather_object(handles, handle, group=group)
+    if len(handles) == world_size + 1 and handles[0] is None:
+        handles = handles[1:]
+    assert len(handles) == world_size, (
+        f"all_gather_object returned {len(handles)} entries, expected {world_size}"
+    )
 
     pointers: List[int] = []
     for i, h in enumerate(handles):
@@ -230,7 +240,12 @@ def free_shared_buffer(
     Frees a shared buffer.
     """
     if group is None:
-        group = dist.group.WORLD
+        try:
+            group = dist.group.WORLD
+        except AttributeError:
+            import paddle.distributed as _pdist
+
+            group = _pdist.get_group()
     rank = dist.get_rank(group=group)
     if pointers and len(pointers) > rank and pointers[rank] is not None:
         cudart.cudaFree(ctypes.c_void_p(pointers[rank]))

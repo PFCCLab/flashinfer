@@ -3937,7 +3937,7 @@ def trtllm_ragged_attention_deepseek(
         if isinstance(bmm2_scale, torch.Tensor):
             assert bmm2_scale.dtype == torch.float32
 
-        workspace_size = workspace_buffer.numel() * workspace_buffer.element_size()
+        workspace_size = int(workspace_buffer.numel() * workspace_buffer.element_size())
         sage_attn_sfs_q, sage_attn_sfs_k, sage_attn_sfs_p, sage_attn_sfs_v = (
             sage_attn_sfs
         )
@@ -4251,7 +4251,7 @@ def trtllm_batch_context_with_kv_cache(
     if isinstance(bmm2_scale, torch.Tensor):
         assert bmm2_scale.dtype == torch.float32
     _check_block_tables_shape(block_tables, uses_shared_paged_kv_idx)
-    workspace_size = workspace_buffer.numel() * workspace_buffer.element_size()
+    workspace_size = int(workspace_buffer.numel() * workspace_buffer.element_size())
     run_func(
         out,
         out_scale_factor,

@@ -4,13 +4,16 @@ import types
 from pathlib import Path
 from typing import Any, Dict, Set
 
+import paddle
+
+paddle.enable_compat()
 import pytest
 import torch
-from torch.torch_version import TorchVersion
-from torch.torch_version import __version__ as torch_version
+# from torch.torch_version import TorchVersion
+# from torch.torch_version import __version__ as torch_version
 
 import flashinfer
-from flashinfer.jit import MissingJITCacheError
+# from flashinfer.jit import MissingJITCacheError
 
 # Global tracking for JIT cache coverage
 # Store tuples of (test_name, module_name, spec_info)
@@ -126,8 +129,8 @@ def _monkeypatch_add_torch_compile(func):
 
 def pytest_configure(config):
     if os.environ.get("FLASHINFER_TEST_TORCH_COMPILE", "0") == "1":
-        if torch_version < TorchVersion("2.4"):
-            pytest.skip("torch.compile requires torch >= 2.4")
+        # if torch_version < TorchVersion("2.4"):
+        #     pytest.skip("torch.compile requires torch >= 2.4")
         _set_torch_compile_options()
         for fn in TORCH_COMPILE_FNS:
             _monkeypatch_add_torch_compile(fn)
@@ -137,34 +140,38 @@ def is_cuda_oom_error_str(e: str) -> bool:
     return "CUDA" in e and "out of memory" in e
 
 
-@pytest.hookimpl(wrapper=True)
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_call(item):
     # skip OOM error and missing JIT cache errors
     try:
-        yield
-    except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
-        if isinstance(e, torch.cuda.OutOfMemoryError) or is_cuda_oom_error_str(str(e)):
-            pytest.skip("Skipping due to OOM")
-        elif isinstance(e, MissingJITCacheError):
-            # Record the test that was skipped due to missing JIT cache
-            test_name = item.nodeid
-            spec = e.spec
-            module_name = spec.name if spec else "unknown"
+        item.runtest()
+    except Exception:
+        raise
+    # try:
+    #     item.runtest()
+    # except (torch.cuda.OutOfMemoryError, RuntimeError) as e:
+    #     if isinstance(e, torch.cuda.OutOfMemoryError) or is_cuda_oom_error_str(str(e)):
+    #         pytest.skip("Skipping due to OOM")
+    #     elif isinstance(e, MissingJITCacheError):
+    #         # Record the test that was skipped due to missing JIT cache
+    #         test_name = item.nodeid
+    #         spec = e.spec
+    #         module_name = spec.name if spec else "unknown"
 
-            # Create a dict with module info for reporting
-            spec_info = None
-            if spec:
-                spec_info = {
-                    "name": spec.name,
-                    "sources": [str(s) for s in spec.sources],
-                    "needs_device_linking": spec.needs_device_linking,
-                    "aot_path": str(spec.aot_path),
-                }
+    #         # Create a dict with module info for reporting
+    #         spec_info = None
+    #         if spec:
+    #             spec_info = {
+    #                 "name": spec.name,
+    #                 "sources": [str(s) for s in spec.sources],
+    #                 "needs_device_linking": spec.needs_device_linking,
+    #                 "aot_path": str(spec.aot_path),
+    #             }
 
-            _MISSING_JIT_CACHE_MODULES.add((test_name, module_name, str(spec_info)))
-            pytest.skip(f"Skipping due to missing JIT cache for module: {module_name}")
-        else:
-            raise
+    #         _MISSING_JIT_CACHE_MODULES.add((test_name, module_name, str(spec_info)))
+    #         pytest.skip(f"Skipping due to missing JIT cache for module: {module_name}")
+    #     else:
+    #         raise
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):

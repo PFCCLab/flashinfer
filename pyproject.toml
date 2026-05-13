@@ -13,14 +13,14 @@
 # limitations under the License.
 
 [project]
-name = "flashinfer-python"
-dynamic = ["version", "dependencies"]
+name = "flashinfer-python-paddle"
 description = "FlashInfer: Kernel Library for LLM Serving"
 requires-python = ">=3.10,<4.0"
 authors = [{ name = "FlashInfer team" }]
 license = "Apache-2.0"
 readme = "README.md"
-urls = { Homepage = "https://github.com/flashinfer-ai/flashinfer" }
+urls = { Homepage = "https://github.com/PFCCLab/flashinfer" }
+dynamic = ["dependencies", "version"]
 license-files = ["LICENSE", "LICENSE*.txt"]
 
 [project.optional-dependencies]

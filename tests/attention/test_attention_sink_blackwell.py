@@ -14,13 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import paddle
+
+paddle.enable_compat()
 import einops
 import pytest
 import torch
+import numpy as np
 from tests.test_helpers.sink_attention_reference import sink_attention_unified
 
 import flashinfer
-from flashinfer.utils import get_compute_capability
+# from flashinfer.utils import get_compute_capability
 
 
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
@@ -39,11 +43,11 @@ def test_blackwell_trtllm_gen_decode_attention_sink(
     num_kv_heads,
     head_dim,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
-    if compute_capability[0] != 10:
-        pytest.skip("trtllm-gen only supports SM100 and SM103 GPUs.")
-    seed = 0
-    torch.manual_seed(seed)
+    # compute_capability = get_compute_capability(torch.device(device="cuda"))
+    # if compute_capability[0] in [11, 12]:
+    #     pytest.skip("trtllm-gen does not support SM110/SM120/SM121 GPUs.")
+    # seed = 0
+    # torch.manual_seed(seed)
     device = "cuda:0"
 
     seq_lens = torch.full((batch_size,), seq_len, dtype=torch.int32, device=device)
@@ -121,7 +125,8 @@ def test_blackwell_trtllm_gen_decode_attention_sink(
     else:
         raise ValueError(f"Unsupported dtype: {dtype}")
 
-    torch.testing.assert_close(o_ref, output, atol=atol, rtol=rtol)
+    # torch.testing.assert_close(o_ref, output, atol=atol, rtol=rtol)
+    np.testing.assert_allclose(o_ref.float(), output.float(), atol=atol, rtol=rtol)
 
 
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
@@ -140,11 +145,12 @@ def test_blackwell_trtllm_gen_context_attention_sink(
     num_kv_heads,
     head_dim,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
-    if compute_capability[0] != 10:
-        pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
+    # compute_capability = get_compute_capability(torch.device(device="cuda"))
+    # if compute_capability[0] in [11, 12]:
+    #     pytest.skip("trtllm-gen does not support SM110/SM120/SM121 GPUs.")
     seed = 0
-    torch.manual_seed(seed)
+    paddle.seed(seed)
+    # torch.manual_seed(seed)
     device = "cuda:0"
 
     seq_lens = torch.full((batch_size,), seq_len, dtype=torch.int32, device=device)
@@ -232,5 +238,6 @@ def test_blackwell_trtllm_gen_context_attention_sink(
         atol, rtol = 1e-2, 1e-2
     else:
         raise ValueError(f"Unsupported dtype: {dtype}")
-
-    torch.testing.assert_close(o_ref, output, atol=atol, rtol=rtol)
+    ref_o = o_ref.float().numpy()
+    output_o = output.float().numpy()
+    np.testing.assert_allclose(ref_o, output_o, atol=atol, rtol=rtol)

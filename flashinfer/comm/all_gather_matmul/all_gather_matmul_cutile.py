@@ -8,7 +8,11 @@ See all_gather_matmul.py for the public routing entry point and full algorithm d
 
 import torch
 import torch.distributed as dist
-import torch.distributed._symmetric_memory as symm_mem
+
+try:
+    import torch.distributed._symmetric_memory as symm_mem
+except (ImportError, ModuleNotFoundError):
+    symm_mem = None
 import cuda.tile as ct
 
 from .broadcast_input import broadcast_input

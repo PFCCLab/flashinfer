@@ -15,6 +15,36 @@ High-Performance GPU Kernels for Inference
 [![Build Status](https://ci.tlcpack.ai/job/flashinfer-ci/job/main/badge/icon)](https://ci.tlcpack.ai/job/flashinfer-ci/job/main/)
 [![Documentation](https://github.com/flashinfer-ai/flashinfer/actions/workflows/build-doc.yml/badge.svg)](https://github.com/flashinfer-ai/flashinfer/actions/workflows/build-doc.yml)
 
+
+> [!NOTE]
+>
+> This repo is a fork of the original torchcodec project, with modifications to enhance compatibility and integration with PaddlePaddle.
+>
+> **Installation**
+>
+> ```bash
+> pip install paddlepaddle_gpu  # Install PaddlePaddle with GPU support, refer to https://www.paddlepaddle.org.cn/install/quick for more details
+> git clone https://github.com/PFCCLab/flashinfer.git
+> cd flashinfer
+> git submodule update --init
+> pip install apache-tvm-ffi>=0.1.2  # Use TVM FFI 0.1.2 or above
+> pip install filelock jinja2  # Install tools for jit compilation
+> pip install --no-build-isolation . -v
+> ```
+>
+> **Usage**
+>
+> ```python
+> import paddle
+> paddle.enable_compat(scope={"flashinfer"})  # Enable torch proxy before importing flashinfer
+> import flashinfer
+> # use flashinfer
+> ```
+
+The original README.md content is as follows:
+
+---
+
 **FlashInfer** is a library and kernel generator for inference that delivers state-of-the-art performance across diverse GPU architectures. It provides unified APIs for attention, GEMM, and MoE operations with multiple backend implementations including FlashAttention-2/3, cuDNN, CUTLASS, and TensorRT-LLM.
 
 ## Why FlashInfer?

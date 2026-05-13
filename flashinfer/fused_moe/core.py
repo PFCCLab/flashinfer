@@ -201,6 +201,16 @@ def reorder_rows_for_gated_act_gemm(x):
     """
     row_indices = get_reorder_rows_for_gated_act_gemm_row_indices(x)
 
+    # Paddle compat: index kernel doesnt support float8 dtypes. View as int8 and back.
+    try:
+        fp8_types = (torch.float8_e4m3fn, torch.float8_e5m2)
+    except AttributeError:
+        fp8_types = ()
+    if fp8_types and x.dtype in fp8_types:
+        orig_dtype = x.dtype
+        out = x.view(torch.int8)[row_indices]
+        return out.view(orig_dtype)
+
     permute = lambda x: x[row_indices]
 
     return permute(x)
@@ -1098,9 +1108,14 @@ def get_trtllm_moe_sm100_module():
                 expert_ids = torch.randint(
                     0, num_experts, shapes, dtype=torch.int32, device=device
                 )
-                expert_weights = torch.ones(
-                    shapes, dtype=torch.bfloat16, device=device
-                ).view(torch.int16)
+                # Paddle compat: bitwise_or requires matching dtypes; torch
+                # would implicitly promote int16 -> int32 here. Promote
+                # explicitly so the code works under both backends.
+                expert_weights = (
+                    torch.ones(shapes, dtype=torch.bfloat16, device=device)
+                    .view(torch.int16)
+                    .to(torch.int32)
+                )
                 return (expert_ids << 16) | expert_weights
 
             spec = {
