@@ -19,3 +19,6 @@ python -m pytest -rs "tests/comm/test_trtllm_allreduce_fusion.py::test_trtllm_al
 # python -m pytest -rs tests/moe/test_trtllm_gen_fused_moe.py::test_deepseekv3_routing
 # python -m pytest -rs tests/moe/test_trtllm_gen_fused_moe.py::test_nvfp4_moe_gemm_bias
 python -m pytest -rs tests/norm/test_fused_rmsnorm_silu.py
+python -m pytest -rs tests/norm/test_fused_dit_layernorm.py
+# test_rmsnorm_fp4_quant_cute_dsl.py: SKIP - torch.float4_e2m1fn_x2 not available (requires PyTorch 2.6+, NVFP4 packed dtype)
+# test_add_rmsnorm_fp4_quant_cute_dsl.py: SKIP - same reason as above
