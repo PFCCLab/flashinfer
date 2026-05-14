@@ -42,8 +42,20 @@ def _make_strided_gate(batch_size, seq_len, hidden_dim, device):
     temb = torch.randn(
         batch_size, seq_len, 6, hidden_dim, dtype=torch.bfloat16, device=device
     )
-    return temb.chunk(6, dim=2)[0].squeeze(2)
+    return _chunk_strided(temb, 0)
 
+
+
+
+def _chunk_strided(temb, chunk_idx):
+    batch_size, seq_len, _, hidden_dim = temb.shape
+    batch_stride, row_stride, _, col_stride = temb.stride()
+    return torch.as_strided(
+        temb,
+        size=(batch_size, seq_len, hidden_dim),
+        stride=(batch_stride, row_stride, col_stride),
+        storage_offset=chunk_idx * hidden_dim * temb.element_size(),
+    )
 
 def _make_wan_temb_inputs(batch_size, seq_len, hidden_dim, device):
     """Create gate/scale/shift tensors matching WAN's temb.chunk(6, dim=2) pattern.
@@ -158,8 +170,7 @@ def test_gate_residual_gamma_beta_bf16(batch_size, seq_len):
     )
 
     # Fused kernel — pass strided gate from temb.chunk(6, dim=2) directly
-    temb_chunks = temb_data["temb"].chunk(6, dim=2)
-    gate_strided = temb_chunks[2].squeeze(2)  # gate_msa position
+    gate_strided = _chunk_strided(temb_data["temb"], 2)  # gate_msa position
     table_chunks = temb_data["scale_shift_table"].chunk(6, dim=1)
     gate_bias_from_table = table_chunks[2].squeeze(1)
 
@@ -211,15 +222,14 @@ def test_gate_residual_scale_shift_bf16(batch_size, seq_len):
     )
 
     # Fused kernel
-    temb_chunks = temb_data["temb"].chunk(6, dim=2)
     table_chunks = temb_data["scale_shift_table"].chunk(6, dim=1)
 
     residual_fused, norm_fused = fused_dit_gate_residual_layernorm_scale_shift(
         input_tensor,
         residual,
-        temb_chunks[5].squeeze(2),  # c_gate_msa
-        temb_chunks[1].squeeze(2),  # scale_msa
-        temb_chunks[0].squeeze(2),  # shift_msa
+        _chunk_strided(temb_data["temb"], 5),  # c_gate_msa
+        _chunk_strided(temb_data["temb"], 1),  # scale_msa
+        _chunk_strided(temb_data["temb"], 0),  # shift_msa
         gate_bias=table_chunks[5].squeeze(1),
         scale_bias=table_chunks[1].squeeze(1),
         shift_bias=table_chunks[0].squeeze(1),
@@ -264,13 +274,12 @@ def test_residual_scale_shift_bf16(batch_size, seq_len):
     )
 
     # Fused kernel
-    temb_chunks = temb_data["temb"].chunk(6, dim=2)
     table_chunks = temb_data["scale_shift_table"].chunk(6, dim=1)
 
     residual_fused, norm_fused = fused_dit_residual_layernorm_scale_shift(
         input_tensor,
-        temb_chunks[4].squeeze(2),  # c_scale_msa
-        temb_chunks[3].squeeze(2),  # c_shift_msa
+        _chunk_strided(temb_data["temb"], 4),  # c_scale_msa
+        _chunk_strided(temb_data["temb"], 3),  # c_shift_msa
         residual=residual,
         scale_bias=table_chunks[4].squeeze(1),
         shift_bias=table_chunks[3].squeeze(1),
@@ -303,7 +312,6 @@ def test_destination_passing():
     beta = torch.randn(HIDDEN_DIM, dtype=torch.float32, device=device)
 
     temb_data = _make_wan_temb_inputs(batch_size, seq_len, HIDDEN_DIM, device)
-    temb_chunks = temb_data["temb"].chunk(6, dim=2)
     table_chunks = temb_data["scale_shift_table"].chunk(6, dim=1)
 
     residual_out = torch.empty_like(input_tensor)
@@ -312,7 +320,7 @@ def test_destination_passing():
     r_ret, n_ret = fused_dit_gate_residual_layernorm_gamma_beta(
         input_tensor,
         residual,
-        temb_chunks[2].squeeze(2),
+        _chunk_strided(temb_data["temb"], 2),
         gamma,
         beta,
         gate_bias=table_chunks[2].squeeze(1),
@@ -340,7 +348,6 @@ def test_destination_passing_scale_shift():
     )
     residual = torch.randn_like(input_tensor)
     temb_data = _make_wan_temb_inputs(batch_size, seq_len, HIDDEN_DIM, device)
-    temb_chunks = temb_data["temb"].chunk(6, dim=2)
     table_chunks = temb_data["scale_shift_table"].chunk(6, dim=1)
 
     residual_out = torch.empty_like(input_tensor)
@@ -348,8 +355,8 @@ def test_destination_passing_scale_shift():
 
     r_ret, n_ret = fused_dit_residual_layernorm_scale_shift(
         input_tensor,
-        temb_chunks[4].squeeze(2),
-        temb_chunks[3].squeeze(2),
+        _chunk_strided(temb_data["temb"], 4),
+        _chunk_strided(temb_data["temb"], 3),
         residual=residual,
         scale_bias=table_chunks[4].squeeze(1),
         shift_bias=table_chunks[3].squeeze(1),
@@ -376,13 +383,12 @@ def test_residual_scale_shift_no_residual():
         batch_size, seq_len, HIDDEN_DIM, dtype=torch.bfloat16, device=device
     )
     temb_data = _make_wan_temb_inputs(batch_size, seq_len, HIDDEN_DIM, device)
-    temb_chunks = temb_data["temb"].chunk(6, dim=2)
     table_chunks = temb_data["scale_shift_table"].chunk(6, dim=1)
 
     residual_fused, norm_fused = fused_dit_residual_layernorm_scale_shift(
         input_tensor,
-        temb_chunks[4].squeeze(2),
-        temb_chunks[3].squeeze(2),
+        _chunk_strided(temb_data["temb"], 4),
+        _chunk_strided(temb_data["temb"], 3),
         residual=None,
         scale_bias=table_chunks[4].squeeze(1),
         shift_bias=table_chunks[3].squeeze(1),
@@ -424,13 +430,12 @@ def test_odd_num_rows():
     beta = torch.randn(HIDDEN_DIM, dtype=torch.float32, device=device)
 
     temb_data = _make_wan_temb_inputs(batch_size, seq_len, HIDDEN_DIM, device)
-    temb_chunks = temb_data["temb"].chunk(6, dim=2)
     table_chunks = temb_data["scale_shift_table"].chunk(6, dim=1)
 
     residual_fused, norm_fused = fused_dit_gate_residual_layernorm_gamma_beta(
         input_tensor,
         residual,
-        temb_chunks[2].squeeze(2),
+        _chunk_strided(temb_data["temb"], 2),
         gamma,
         beta,
         gate_bias=table_chunks[2].squeeze(1),
@@ -483,7 +488,6 @@ def _run_nvfp4_or_mxfp8_test(mode, output_type, batch_size=1, seq_len=768):
     gamma = torch.randn(HIDDEN_DIM, dtype=torch.float32, device=device)
     beta = torch.randn(HIDDEN_DIM, dtype=torch.float32, device=device)
     temb_data = _make_wan_temb_inputs(batch_size, seq_len, HIDDEN_DIM, device)
-    temb_chunks = temb_data["temb"].chunk(6, dim=2)
     table_chunks = temb_data["scale_shift_table"].chunk(6, dim=1)
 
     # Compute BF16 reference for residual and norm
@@ -525,7 +529,7 @@ def _run_nvfp4_or_mxfp8_test(mode, output_type, batch_size=1, seq_len=768):
         residual_out, norm_out = fused_dit_gate_residual_layernorm_gamma_beta(
             input_tensor,
             residual,
-            temb_chunks[2].squeeze(2),
+            _chunk_strided(temb_data["temb"], 2),
             gamma,
             beta,
             gate_bias=table_chunks[2].squeeze(1),
@@ -537,8 +541,8 @@ def _run_nvfp4_or_mxfp8_test(mode, output_type, batch_size=1, seq_len=768):
     else:
         residual_out, norm_out = fused_dit_residual_layernorm_scale_shift(
             input_tensor,
-            temb_chunks[4].squeeze(2),
-            temb_chunks[3].squeeze(2),
+            _chunk_strided(temb_data["temb"], 4),
+            _chunk_strided(temb_data["temb"], 3),
             residual=residual,
             scale_bias=table_chunks[4].squeeze(1),
             shift_bias=table_chunks[3].squeeze(1),
