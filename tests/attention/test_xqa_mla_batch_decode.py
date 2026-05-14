@@ -22,7 +22,7 @@ def test_xqa_mla_batch_decode(
     page_size: int,
     enable_pdl: bool,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] != 12:
         pytest.skip("These tests are only guaranteed to work on SM120/SM121 GPUs.")
 

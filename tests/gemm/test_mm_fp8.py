@@ -25,7 +25,7 @@ def test_mm_fp8(
     mat2_dtype: torch.dtype,
     res_dtype: torch.dtype,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] not in [10]:
         pytest.skip("mm_fp8 is only supported on Blackwell GPUs.")
 

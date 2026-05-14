@@ -38,6 +38,17 @@ import inspect
 from .jit.spdlog import gen_spdlog_module
 
 
+
+
+def use_paddle_compatible_api() -> bool:
+    """Check if we should use Paddle compatible API."""
+    try:
+        import paddle
+        return True
+    except ImportError:
+        return False
+
+
 class PosEncodingMode(Enum):
     NONE = 0
     ROPE_LLAMA = 1

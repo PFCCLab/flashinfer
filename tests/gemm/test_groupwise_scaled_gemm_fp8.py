@@ -43,7 +43,7 @@ def test_fp8_blockscale_gemm(
     scale_major_mode,
     out_dtype,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] not in [10, 11, 12]:
         pytest.skip(
             "gemm_fp8_nt_blockscaled is only supported on SM100/103, SM110, and SM120/121 GPUs."
@@ -88,7 +88,7 @@ def test_fp8_groupwise_gemm(
     scale_major_mode,
     backend,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if backend == "trtllm":
         if compute_capability[0] != 10:
             pytest.skip(
@@ -145,7 +145,7 @@ def test_fp8_groupwise_gemm(
 @pytest.mark.parametrize("k", [256])
 @pytest.mark.parametrize("scale_major_mode", ["MN", "K"])
 def test_fp8_groupwise_gemm_small_batch_size(m, n, k, scale_major_mode):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] != 10:
         pytest.skip(
             "Small-batch gemm_fp8_nt_groupwise dispatch is only relevant on SM100/103."
@@ -199,7 +199,7 @@ def test_fp8_groupwise_group_gemm(
     scale_major_mode,
     out_dtype,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if group_size > 1 and compute_capability[0] in [
         12,
     ]:
@@ -266,7 +266,7 @@ def test_fp8_groupwise_group_deepgemm(
     group_size,
     out_dtype,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] != 10:
         pytest.skip(
             "group_deepgemm_fp8_nt_groupwise is only supported on SM100, SM103 in trtllm backend."
@@ -314,7 +314,7 @@ def test_fp8_groupwise_batch_deepgemm_masked(
     group_size,
     out_dtype,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] != 10:
         pytest.skip(
             "batch_deepgemm_fp8_nt_groupwise is only supported on SM100, SM103."

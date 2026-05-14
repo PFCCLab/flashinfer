@@ -273,7 +273,7 @@ def trtllm_batch_decode_mla(
     skips_softmax: bool,
     uses_shared_paged_kv_idx: bool = True,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if backend == "xqa":
         if compute_capability[0] != 12:
             pytest.skip("XQA MLA only supports SM120/SM121 GPUs")
@@ -554,7 +554,7 @@ def trtllm_batch_decode_mla_sparse(
     qk_nope_head_dim: int,
     num_attn_heads: int,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if backend == "trtllm-gen":
         if compute_capability[0] != 10:
             pytest.skip("TRTLLM-GEN MLA only supports SM100 and SM103 GPUs")

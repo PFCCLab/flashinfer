@@ -14,7 +14,7 @@ from flashinfer.utils import get_compute_capability
 @pytest.mark.parametrize("res_dtype", [torch.bfloat16, torch.float16, torch.float32])
 @pytest.mark.parametrize("backend", ["cutlass", "cudnn", "auto"])
 def test_bmm_bf16(b, m, n, k, res_dtype, backend):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     compute_capability_number = compute_capability[0] * 10 + compute_capability[1]
     if not bmm_bf16.is_compute_capability_supported(compute_capability_number):
         pytest.skip(

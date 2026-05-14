@@ -27,7 +27,7 @@ def test_mm_bf16(
     backend: str,
     auto_tuning: bool,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     compute_capability_number = compute_capability[0] * 10 + compute_capability[1]
     if not mm_bf16.is_compute_capability_supported(compute_capability_number):
         pytest.skip(

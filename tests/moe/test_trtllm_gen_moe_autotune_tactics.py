@@ -357,7 +357,7 @@ def test_trtllm_fp4_routed_moe_all_tactics_correctness(
     determinism, and approximate match to the heuristic-default tactic's
     output.
     """
-    if get_compute_capability(torch.device(device="cuda"))[0] not in [10]:
+    if get_compute_capability(torch.device("cuda"))[0] not in [10]:
         pytest.skip("Only work on SM100 / SM103.")
 
     AutoTuner.get()._logged_file_hits.discard(_TEST_LOG_KEY_FP4)
@@ -702,7 +702,7 @@ def test_trtllm_fp8_routed_moe_all_tactics_correctness(
     quant_mode: Fp8QuantMode,
 ):
     """Per-tactic correctness sweep of `trtllm_fp8_block_scale_routed_moe`."""
-    if get_compute_capability(torch.device(device="cuda"))[0] not in [10]:
+    if get_compute_capability(torch.device("cuda"))[0] not in [10]:
         pytest.skip("Only work on SM100 / SM103.")
 
     AutoTuner.get()._logged_file_hits.discard(_TEST_LOG_KEY_FP8)

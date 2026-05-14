@@ -601,7 +601,7 @@ def _test_trtllm_batch_prefill(
     skips_softmax: bool = False,
     uses_shared_paged_kv_idx: bool = True,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] != 10:
         pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
     if not causal and window_left >= 0:
@@ -1042,7 +1042,7 @@ def _test_trtllm_batch_decode(
 
     Combinations of parameters are tested in test_trtllm_batch_decode() and test_trtllm_batch_decode_...()
     """
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
 
     # Check GPU architecture requirements for different backends
     if backend == "trtllm-gen" and compute_capability[0] != 10:
@@ -1866,7 +1866,7 @@ def test_trtllm_gen_prefill(
     skips_softmax: bool,
     enable_sink: bool,
 ) -> None:
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] != 10:
         pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
     if s_qo > s_kv:
@@ -2046,7 +2046,7 @@ def test_trtllm_gen_prefill_fp8(
     skips_softmax: bool,
 ) -> None:
     """Test cute-dsl prefill with FP8 (e4m3) input, bf16 output."""
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] != 10:
         pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
 

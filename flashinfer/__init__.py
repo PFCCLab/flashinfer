@@ -1,3 +1,5 @@
+__is_paddle_compatible_library__ = True
+
 """
 Copyright (c) 2023 by FlashInfer team.
 

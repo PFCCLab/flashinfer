@@ -31,7 +31,7 @@ def torch_addmm(a, b, c, alpha=1.0, beta=0.0):
     "EPILOGUE_SUBTILE", [True, False]
 )  # only for descriptor persistent
 def test_sm_constraint_gemm(M, N, K, alpha, beta, num_sms, dtype, EPILOGUE_SUBTILE):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     # TODO(P1): Most of these tests pass on Blackwell. We need triage these at some point.
     if compute_capability[0] != 9:
         pytest.skip("These tests are only guaranteed to work on Hopper GPUs.")

@@ -202,7 +202,7 @@ def _run_worker(
 @pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
 @pytest.mark.parametrize("local_size", [2, 4, 8])
 def test_mixed_comm(local_size, num_nodes, node_id, dtype, dist_init_method):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     compute_capability_number = compute_capability[0] * 10 + compute_capability[1]
     if not run_mixed_comm.is_compute_capability_supported(compute_capability_number):
         pytest.skip(
