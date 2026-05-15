@@ -206,7 +206,7 @@ def _run_attention(
 
 # -------------------------  PyTest test case  ----------------------------- #
 @pytest.mark.xfail(
-    get_compute_capability(torch.device(device="cuda"))[0] == 12,
+    get_compute_capability(torch.device("cuda"))[0] == 12,
     reason="Expected failure for SM120/121 for now since the tile size/number of stages is too large.",
 )
 def test_batch_attention_with_noncontiguous_q():
@@ -245,7 +245,7 @@ def test_batch_attention_with_noncontiguous_q():
 
 
 @pytest.mark.xfail(
-    get_compute_capability(torch.device(device="cuda"))[0] == 12,
+    get_compute_capability(torch.device("cuda"))[0] == 12,
     reason="Expected failure for SM120/121 for now since the tile size/number of stages is too large.",
 )
 @pytest.mark.parametrize("seq_len_pairs", _build_seq_len_configs())
@@ -291,7 +291,7 @@ def test_batch_attention_correctness(
 
 
 @pytest.mark.xfail(
-    get_compute_capability(torch.device(device="cuda"))[0] == 12,
+    get_compute_capability(torch.device("cuda"))[0] == 12,
     reason="Expected failure for SM120/121 for now since the tile size/number of stages is too large.",
 )
 @pytest.mark.parametrize("batch_size", [1, 4])

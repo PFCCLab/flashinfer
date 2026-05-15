@@ -22,3 +22,10 @@ python -m pytest -rs tests/norm/test_fused_rmsnorm_silu.py
 python -m pytest -rs tests/norm/test_fused_dit_layernorm.py
 # test_rmsnorm_fp4_quant_cute_dsl.py: SKIP - torch.float4_e2m1fn_x2 not available (requires PyTorch 2.6+, NVFP4 packed dtype)
 # test_add_rmsnorm_fp4_quant_cute_dsl.py: SKIP - same reason as above
+# gemm tests (2026-05-15)
+# test_mm_bf16: cudnn/auto backend FAIL due to §47 env issue (Multiple libcudart), cutlass/tgv/cublaslt/tinygemm pass
+python -m pytest -rs 'tests/gemm/test_mm_bf16.py::test_mm_bf16[False-cutlass-False-False-res_dtype0-1024-1024-1]'
+# test_bmm_bf16: auto-float32 FAIL due to §47, cutlass/cudnn pass
+python -m pytest -rs 'tests/gemm/test_bmm_bf16.py::test_bmm_bf16[cutlass-res_dtype0-64-80-48-1]'
+# test_group_gemm: sm80 PASS, sm90 SKIP (device is SM100 Blackwell, sm90 not supported)
+python -m pytest -rs 'tests/gemm/test_group_gemm.py::test_segment_gemm[sm80-cuda:0-dtype0-False-False-128-128-3-1]'

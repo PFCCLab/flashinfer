@@ -7,6 +7,46 @@ from typing import Any, Dict, Set
 import paddle
 
 paddle.enable_compat()
+
+# Monkey-patch Stream to add cuda_stream property for paddle compat
+# After paddle.enable_compat(), torch.cuda.Stream is paddle.device.Stream
+# which uses __cuda_stream__() instead of cuda_stream property
+try:
+    import torch
+
+    if not hasattr(torch.cuda.Stream, "cuda_stream"):
+        torch.cuda.Stream.cuda_stream = property(
+            lambda self: self.__cuda_stream__()[1]
+            if hasattr(self, "__cuda_stream__")
+            else None
+        )
+except Exception:
+    pass
+
+
+# Monkey-patch torch.cuda.current_blas_handle for paddle compat
+try:
+    import ctypes
+
+    if not hasattr(torch.cuda, "current_blas_handle"):
+        _cublas_lib = ctypes.CDLL("libcublas.so.12")
+        _cublas_handles = {}
+
+        def _current_blas_handle():
+            device_id = torch.cuda.current_device()
+            if device_id not in _cublas_handles:
+                handle = ctypes.c_void_p()
+                _cublas_lib.cublasCreate_v2(ctypes.byref(handle))
+                _cublas_handles[device_id] = handle
+            handle = _cublas_handles[device_id]
+            stream_ptr = torch.cuda.current_stream().cuda_stream
+            _cublas_lib.cublasSetStream_v2(handle, ctypes.c_void_p(stream_ptr))
+            return handle.value
+
+        paddle.cuda.current_blas_handle = _current_blas_handle
+except Exception:
+    pass
+
 import pytest
 import torch
 # from torch.torch_version import TorchVersion

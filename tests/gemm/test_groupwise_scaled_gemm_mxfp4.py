@@ -254,7 +254,7 @@ def test_mxfp8_mxfp4_groupwise_group_gemm(
     fp8_dtype,
     out_dtype,
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] not in [10, 12]:
         pytest.skip(
             "gemm_mxfp4_nt_groupwise is only supported on SM100, SM103, and SM120/121 GPUs."

@@ -391,7 +391,7 @@ def generate_causal_mask(
 
 
 @pytest.mark.skipif(
-    get_compute_capability(torch.device(device="cuda"))[0] not in [9, 10, 12],
+    get_compute_capability(torch.device("cuda"))[0] not in [9, 10, 12],
     reason="XQA is only supported on SM90, SM100, SM120/SM121 GPUs",
 )
 @pytest.mark.parametrize(
@@ -580,7 +580,7 @@ def test_xqa_batch_decode(
 
 
 @pytest.mark.skipif(
-    get_compute_capability(torch.device(device="cuda"))[0] not in [12],
+    get_compute_capability(torch.device("cuda"))[0] not in [12],
     reason="XQA with NVFP4 KV is only supported on SM120 GPUs",
 )
 @pytest.mark.parametrize(
