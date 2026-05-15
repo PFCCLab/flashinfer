@@ -1,7 +1,11 @@
 import pytest as _pytest_fp4
 import torch as _torch_fp4
+
 if not hasattr(_torch_fp4, "float4_e2m1fn_x2"):
-    _pytest_fp4.skip("torch.float4_e2m1fn_x2 not available (requires PyTorch 2.6+)", allow_module_level=True)
+    _pytest_fp4.skip(
+        "torch.float4_e2m1fn_x2 not available (requires PyTorch 2.6+)",
+        allow_module_level=True,
+    )
 del _pytest_fp4, _torch_fp4
 
 # Copyright (c) 2025 by FlashInfer team.
@@ -26,9 +30,6 @@ import torch
 
 from flashinfer.cute_dsl.utils import is_cute_dsl_available
 from tests.test_helpers.utils_fp4 import cast_from_fp4
-
-
-
 
 
 def get_cc():
