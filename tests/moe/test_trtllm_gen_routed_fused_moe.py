@@ -74,7 +74,7 @@ def test_trtllm_gen_routed_fused_moe(
     routing_method_type: RoutingMethodType,
     quant_mode: Literal["NvFP4xNvFP4", "MxFP4xMxFP8", "MxFP4xBf16"],
 ):
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] not in [10]:
         pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
     torch.manual_seed(42)
@@ -279,7 +279,7 @@ def test_trtllm_gen_fp8_routed_fused_moe(
     routing_method_type: RoutingMethodType,
 ):
     """Test FP8 block scale routed MoE matches standard routing."""
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] not in [10]:
         pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
     torch.manual_seed(42)
@@ -430,7 +430,7 @@ def test_trtllm_gen_bf16_routed_fused_moe(
     routing_method_type: RoutingMethodType,
 ):
     """Test Bf16 scale routed MoE matches standard routing."""
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] not in [10]:
         pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
     torch.manual_seed(42)
@@ -549,7 +549,7 @@ def test_trtllm_gen_bf16_routed_fused_moe(
 )
 def test_trtllm_gen_fp8_mxfp8_routed_activation_parity(activation_type: int):
     """MXFP8 routed path should match non-routed reference for gated and non-gated activations."""
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] not in [10]:
         pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
 
@@ -728,7 +728,7 @@ def test_fp8_block_scale_moe_routing_replay(
     2. The replay buffer matches the reference routing result (sorted set equality).
     3. Tail rows beyond num_tokens remain sentinel (CUDA graph pre-alloc contract).
     """
-    compute_capability = get_compute_capability(torch.device(device="cuda"))
+    compute_capability = get_compute_capability(torch.device("cuda"))
     if compute_capability[0] not in [10]:
         pytest.skip("These tests are only guaranteed to work on SM100 and SM103 GPUs.")
     n_group = 4

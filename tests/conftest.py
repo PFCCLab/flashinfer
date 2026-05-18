@@ -10,6 +10,13 @@ paddle.enable_compat()
 import pytest
 import torch
 # from torch.torch_version import TorchVersion
+# §38: Paddle Event has no wait() method; PyTorch event.wait(stream=None)
+# makes current/given stream wait for the event → use stream.wait_event(event)
+def _paddle_event_wait(self, stream=None):
+    if stream is None:
+        stream = torch.cuda.current_stream()
+    stream.wait_event(self)
+paddle.device.Event.wait = _paddle_event_wait
 # from torch.torch_version import __version__ as torch_version
 
 import flashinfer

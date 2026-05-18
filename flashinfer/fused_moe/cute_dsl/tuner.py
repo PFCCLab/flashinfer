@@ -286,13 +286,13 @@ class CuteDslFusedMoENvfp4Runner(TunableRunner):
                     map_to_tuning_buckets=map_to_hybrid_bucket_uncapped,
                     tensor_initializers=[
                         # 0: x — FP4 quantized input (uint8 packed)
-                        lambda shapes, dtype, device: torch.randint(
-                            0, 256, shapes, dtype=torch.uint8, device=device
-                        ),
+                        lambda shapes, dtype, device: torch.randint(  # §39 Paddle: uint8 not supported
+                            0, 256, shapes, dtype=torch.int32, device=device
+                        ).to(torch.uint8).contiguous(),
                         # 1: x_sf — FP8 scale factors (uint8)
-                        lambda shapes, dtype, device: torch.randint(
-                            1, 128, shapes, dtype=torch.uint8, device=device
-                        ),
+                        lambda shapes, dtype, device: torch.randint(  # §39 Paddle: uint8 not supported
+                            1, 128, shapes, dtype=torch.int32, device=device
+                        ).to(torch.uint8).contiguous(),
                         # 2: token_selected_experts — expert indices [0, num_experts)
                         lambda shapes, dtype, device: torch.randint(
                             0,

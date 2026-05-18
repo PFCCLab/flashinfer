@@ -29,7 +29,12 @@ def _get_cuda_stream_ptr() -> int:
     This is needed for CUDA graph compatibility - the kernel must run on
     PyTorch's current stream, not TVM's default stream.
     """
-    return torch.cuda.current_stream().cuda_stream
+    stream = torch.cuda.current_stream()
+    if hasattr(stream, '__cuda_stream__'):
+        r = stream.__cuda_stream__()
+        # Paddle returns (device_id, stream_ptr) tuple
+        return r[1] if isinstance(r, tuple) else int(r)
+    return stream.cuda_stream
 
 
 # ============================ Helper Functions ============================

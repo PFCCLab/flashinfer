@@ -1,4 +1,12 @@
 # Copyright (c) 2025 by FlashInfer team.
+
+def _get_torch_stream_ptr(torch_stream):
+    """Extract raw CUDA stream ptr for cuda-python CUstream (Paddle compat)."""
+    if hasattr(torch_stream, '__cuda_stream__'):
+        r = torch_stream.__cuda_stream__()
+        return r[1] if isinstance(r, tuple) else int(r)
+    return torch_stream.cuda_stream
+
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,6 +66,8 @@ from flashinfer.cute_dsl.utils import (
 
 # Import the TRT-LLM kernel implementation
 from .blackwell.blockscaled_contiguous_grouped_gemm_finalize_fusion import (
+
+
     Sm100BlockScaledContiguousGroupedGemmFinalizeFusionKernel,
 )
 
@@ -486,7 +496,7 @@ def blockscaled_contiguous_grouped_gemm_finalize_fusion_nvfp4(
 
     # Get CUDA stream
     torch_stream = torch.cuda.current_stream()
-    stream = cuda.CUstream(torch_stream.cuda_stream)
+    stream = cuda.CUstream(_get_torch_stream_ptr(torch_stream))
 
     # Get or compile the kernel (cached by tactic parameters only)
     compiled_gemm = _get_compiled_finalize_kernel(

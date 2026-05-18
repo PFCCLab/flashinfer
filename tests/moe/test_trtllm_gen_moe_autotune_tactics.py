@@ -36,8 +36,14 @@ from flashinfer.fused_moe import (
     WeightLayout,
 )
 from flashinfer.fused_moe.core import Fp8QuantizationType, MoEInputs
-from flashinfer.jit.fused_moe import gen_trtllm_gen_fused_moe_sm100_module
-from flashinfer.tllm_enums import DtypeTrtllmGen
+try:
+    from flashinfer.jit.fused_moe import gen_trtllm_gen_fused_moe_sm100_module
+except (ImportError, ModuleNotFoundError):
+    gen_trtllm_gen_fused_moe_sm100_module = None
+try:
+    from flashinfer.tllm_enums import DtypeTrtllmGen
+except (ImportError, ModuleNotFoundError):
+    DtypeTrtllmGen = None
 from flashinfer.utils import device_support_pdl, get_compute_capability
 
 from .test_trtllm_gen_fused_moe import (
@@ -357,7 +363,7 @@ def test_trtllm_fp4_routed_moe_all_tactics_correctness(
     determinism, and approximate match to the heuristic-default tactic's
     output.
     """
-    if get_compute_capability(torch.device(device="cuda"))[0] not in [10]:
+    if get_compute_capability(torch.device("cuda"))[0] not in [10]:
         pytest.skip("Only work on SM100 / SM103.")
 
     AutoTuner.get()._logged_file_hits.discard(_TEST_LOG_KEY_FP4)
@@ -702,7 +708,7 @@ def test_trtllm_fp8_routed_moe_all_tactics_correctness(
     quant_mode: Fp8QuantMode,
 ):
     """Per-tactic correctness sweep of `trtllm_fp8_block_scale_routed_moe`."""
-    if get_compute_capability(torch.device(device="cuda"))[0] not in [10]:
+    if get_compute_capability(torch.device("cuda"))[0] not in [10]:
         pytest.skip("Only work on SM100 / SM103.")
 
     AutoTuner.get()._logged_file_hits.discard(_TEST_LOG_KEY_FP8)
