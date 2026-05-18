@@ -171,3 +171,14 @@ def skip_checks(
         pytest.skip(
             f"Incompatible: logits_dtype={logits_dtype} with {type(moe_impl).__name__} + {moe_impl.quant_mode}"
         )
+
+    # §43: FP8_Block_DeepSeek with intermediate_size<=512 segfaults under Paddle compat
+    # (trtllm_fp8_block_scale_moe_op autotuner crash, e.g. intermediate_size=384)
+    if (hasattr(moe_impl, 'fp8_quantization_type')
+            and hasattr(moe_impl.fp8_quantization_type, 'name')
+            and moe_impl.fp8_quantization_type == QuantMode.FP8_BLOCK_SCALE_DEEPSEEK
+            and intermediate_size is not None and intermediate_size <= 512):
+        pytest.skip(
+            'Paddle compat: FP8_Block_DeepSeek + intermediate_size={} segfaults '
+            '(trtllm_fp8_block_scale_moe_op autotuner)'.format(intermediate_size)
+        )
