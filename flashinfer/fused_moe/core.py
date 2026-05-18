@@ -117,7 +117,7 @@ def _maybe_get_cached_w3_w1_permute_indices(
     is_gated_act_gemm: bool = True,
 ) -> torch.Tensor:
     # Create a unique cache key (weight_type, weight_shape)
-    cache_key = ("w3_w1", dst_w3_w1_weight.shape)
+    cache_key = ("w3_w1", tuple(dst_w3_w1_weight.shape))
     if cache_key not in _cache_permute_indices:
         # Get permute indices and chain them together
         if is_gated_act_gemm:
@@ -149,7 +149,7 @@ def get_w2_permute_indices_with_cache(
     num_elts_per_sf: Union[None, int] = None,
 ) -> torch.Tensor:
     # Create a unique cache key (weight_type, weight_shape)
-    cache_key = ("w2", dst_w2_weight.shape)
+    cache_key = ("w2", tuple(dst_w2_weight.shape))
     if cache_key not in _cache_permute_indices:
         if num_elts_per_sf is None:
             permute_indices = get_shuffle_matrix_a_row_indices(
