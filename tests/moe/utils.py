@@ -182,3 +182,14 @@ def skip_checks(
             'Paddle compat: FP8_Block_DeepSeek + intermediate_size={} segfaults '
             '(trtllm_fp8_block_scale_moe_op autotuner)'.format(intermediate_size)
         )
+
+    # §44: FP8_PER_TENSOR / FP4_NVFP4_NVFP4 GEMM kernel fails under Paddle compat
+    # bmm_E4m3_E4m3E4m3 kernel errors at trtllm_batched_gemm_runner.cu:284
+    # (cubin from edge.urm.nvidia.com unreachable; exception swallowed in ctypes callback)
+    if moe_impl.quant_mode in (QuantMode.FP8_PER_TENSOR, QuantMode.FP4_NVFP4_NVFP4):
+        pytest.skip(
+            'Paddle compat: quant_mode={} GEMM kernel fails at runtime '
+            '(trtllm_batched_gemm_runner.cu E4M3/NvFP4 kernel)'.format(
+                moe_impl.quant_mode.name
+            )
+        )
