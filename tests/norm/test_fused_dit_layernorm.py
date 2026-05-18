@@ -45,8 +45,6 @@ def _make_strided_gate(batch_size, seq_len, hidden_dim, device):
     return _chunk_strided(temb, 0)
 
 
-
-
 def _chunk_strided(temb, chunk_idx):
     batch_size, seq_len, _, hidden_dim = temb.shape
     batch_stride, row_stride, _, col_stride = temb.stride()
@@ -56,6 +54,7 @@ def _chunk_strided(temb, chunk_idx):
         stride=(batch_stride, row_stride, col_stride),
         storage_offset=chunk_idx * hidden_dim * temb.element_size(),
     )
+
 
 def _make_wan_temb_inputs(batch_size, seq_len, hidden_dim, device):
     """Create gate/scale/shift tensors matching WAN's temb.chunk(6, dim=2) pattern.

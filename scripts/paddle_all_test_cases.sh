@@ -29,3 +29,19 @@ python -m pytest -rs tests/gemm/test_tgv_gemm.py
 # SKIP[288]: sm90 backend not supported on this device (upstream hardware constraint)
 # SKIP[72]: batch_size * num_rows_per_batch too large (upstream guard)
 python -m pytest -rs tests/gemm/test_group_gemm.py
+
+# MoE: test_trtllm_gen_fused_moe.py -- 10 PASS, 3 SKIP (2026-05-18)
+# Fix: tuple(tensor.shape) for paddle.Size hashability in fused_moe/core.py
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_renormalize_routing[FP32_logits-Swiglu-NoShuffle_MajorK-Qwen3_MOE-FP8_Block_DeepSeek-1024-1024-8-RandomHiddenStates]"
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_sigmoid_routing[Swiglu-NoShuffle_MajorK-Sigmoid_128e_top8-FP8_Block_DeepSeek-1024-1024-8]"
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_dyn_block_kernel_routing[3-NoShuffle_MajorK-Renormalize_64e_top4-FP8_Block_DeepSeek-512-512-T5]"
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_tier_1024_experts_routing[3-NoShuffle_MajorK-DeepSeekV3_1024e_top8-FP8_Block_DeepSeek-512-512-8]"
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_deepseek_ngroup1_block_per_token_routing[Swiglu-NoShuffle_MajorK-DeepSeekV3_ngroup1_384e_top6-FP8_Block_DeepSeek-512-512-8]"
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_routing_dtype_flexibility[default_bias-BF16_logits-3-NoShuffle_MajorK-DeepSeekV3_256e-FP8_Block_DeepSeek-512-512-8]"
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_mxfp8_block_scale_moe_relu2_non_gated[Shuffled_MajorK-E32_K4-ZeroHiddenStates-512-512-1]"
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_mxfp8_block_scale_moe_relu2_deepseekv3_topk22"
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_fp8_block_scale_autotune_valid_configs[MxFp8_Relu2_T1_H1024_I1024_K8]"
+python -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_fp8_per_tensor_autotune_valid_configs_nonefp8[PerTensor_Swiglu_T64_H1024_I1024_K8]"
+# SKIP: test_llama4_routing -- No compiled kernel for mTileSize=8 (non-Paddle, hardware/build issue)
+# SKIP: test_deepseekv3_routing -- Upstream logic: activation_type=3 not in Relu2 compatible_types (non-Paddle)
+# SKIP: test_nvfp4_moe_gemm_bias -- torch.cuda.ExternalStream not available in Paddle compat (CUDA graph capture unsupported)
