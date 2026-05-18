@@ -13,6 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import paddle
+
+paddle.enable_compat()
 
 import contextlib
 import importlib.util
@@ -192,3 +195,5 @@ from .xqa import xqa as xqa
 from .xqa import xqa_mla as xqa_mla
 from . import mamba as mamba
 from .fi_trace import fi_trace as fi_trace
+
+paddle.disable_compat()
