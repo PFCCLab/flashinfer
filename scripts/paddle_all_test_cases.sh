@@ -22,3 +22,10 @@ python -m pytest -rs tests/norm/test_fused_rmsnorm_silu.py
 python -m pytest -rs tests/norm/test_fused_dit_layernorm.py
 # test_rmsnorm_fp4_quant_cute_dsl.py: SKIP - torch.float4_e2m1fn_x2 not available (requires PyTorch 2.6+, NVFP4 packed dtype)
 # test_add_rmsnorm_fp4_quant_cute_dsl.py: SKIP - same reason as above
+# test_tgv_gemm.py: PASS (90/90) - tgv_gemm_sm100 tests, SM100/SM103 hardware; no paddle adaptation needed
+# (all 90 tests SKIP on non-SM100 hardware via _match_sm_version guard)
+python -m pytest -rs tests/gemm/test_tgv_gemm.py
+# test_group_gemm.py: PASS (288/288 pass, 360 skip)
+# SKIP[288]: sm90 backend not supported on this device (upstream hardware constraint)
+# SKIP[72]: batch_size * num_rows_per_batch too large (upstream guard)
+python -m pytest -rs tests/gemm/test_group_gemm.py
