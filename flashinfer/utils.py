@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import contextlib
 import functools
 import math
 from enum import Enum
@@ -1318,10 +1319,8 @@ class _PaddleCompatGenerator:
 
 @functools.cache
 def get_default_generators(device: torch.device):
-    try:
-        torch.cuda.init()
-    except AttributeError:
-        pass  # paddle.cuda has no init() (§52)
+    with contextlib.suppress(AttributeError):
+        torch.cuda.init()  # paddle.cuda has no init() (§52)
     try:
         return torch.cuda.default_generators[device.index]
     except AttributeError:

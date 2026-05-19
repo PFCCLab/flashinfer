@@ -266,9 +266,7 @@ else:
     _orig_cuda_init = torch.cuda.init
 
     def _paddle_compat_cuda_init():
-        try:
+        with contextlib.suppress(Exception):
             _orig_cuda_init()
-        except Exception:
-            pass
 
     torch.cuda.init = _paddle_compat_cuda_init
