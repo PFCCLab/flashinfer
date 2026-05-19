@@ -23,16 +23,17 @@ def _is_paddle_isclose_dtype_error(exc):
     while cur is not None and id(cur) not in seen:
         seen.add(id(cur))
         msg = str(cur)
-        if ('bfloat16' in msg or 'float16' in msg) and (
-            'isclose' in msg or 'NotFound' in msg
+        if ("bfloat16" in msg or "float16" in msg) and (
+            "isclose" in msg or "NotFound" in msg
         ):
             return True
-        cur = getattr(cur, '__cause__', None) or getattr(cur, '__context__', None)
+        cur = getattr(cur, "__cause__", None) or getattr(cur, "__context__", None)
     return False
 
 
 def _manual_allclose(actual, expected, rtol, atol):
     import numpy as np
+
     a = actual.float().detach().cpu().numpy()
     e = expected.float().detach().cpu().numpy()
     diff = np.abs(a - e)
@@ -41,9 +42,9 @@ def _manual_allclose(actual, expected, rtol, atol):
         max_diff = float(diff.max())
         max_loc = np.unravel_index(diff.argmax(), diff.shape)
         raise AssertionError(
-            'Tensors are not close! '
-            'Max diff: ' + str(max_diff) + ' at ' + str(max_loc) + ' '
-            'rtol=' + str(rtol) + ' atol=' + str(atol)
+            "Tensors are not close! "
+            "Max diff: " + str(max_diff) + " at " + str(max_loc) + " "
+            "rtol=" + str(rtol) + " atol=" + str(atol)
         )
 
 
@@ -53,11 +54,15 @@ def _paddle_compat_assert_close(actual, expected, *args, **kwargs):
         _orig_assert_close(actual, expected, *args, **kwargs)
     except RuntimeError as e:
         if _is_paddle_isclose_dtype_error(e):
-            rtol = kwargs.get('rtol', None)
-            atol = kwargs.get('atol', None)
+            rtol = kwargs.get("rtol", None)
+            atol = kwargs.get("atol", None)
             dt = actual.dtype if isinstance(actual, torch.Tensor) else torch.float32
             if rtol is None:
-                rtol = 0.016 if dt == torch.bfloat16 else (0.001 if dt == torch.float16 else 1.3e-6)
+                rtol = (
+                    0.016
+                    if dt == torch.bfloat16
+                    else (0.001 if dt == torch.float16 else 1.3e-6)
+                )
             if atol is None:
                 atol = 1e-5
             _manual_allclose(actual, expected, rtol=rtol, atol=atol)
@@ -157,6 +162,7 @@ torch.mul = _paddle_compat_torch_mul
 
 # -- §48: tensor.clamp_min/clamp_max missing on Paddle --------------------
 
+
 def _clamp_min(self, min_val):
     return torch.clamp(self, min=min_val)
 
@@ -172,7 +178,7 @@ torch.Tensor.clamp_max = _clamp_max
 # -- §49: torch.sort axis/dim + (values,indices) return ------------------
 # Paddle compat: uses axis= not dim=; returns bare Tensor not (vals,idxs)
 
-_SortResult = _namedtuple('sort', ['values', 'indices'])
+_SortResult = _namedtuple("sort", ["values", "indices"])
 _orig_torch_sort = torch.sort
 _orig_torch_argsort = torch.argsort
 
@@ -181,7 +187,9 @@ def _make_sort_result(input_tensor, result, axis, descending, stable):
     if not isinstance(result, torch.Tensor):
         return result
     try:
-        indices = _orig_torch_argsort(input_tensor, axis, descending=descending, stable=stable)
+        indices = _orig_torch_argsort(
+            input_tensor, axis, descending=descending, stable=stable
+        )
     except Exception:
         try:
             indices = _orig_torch_argsort(input_tensor, axis, descending=descending)
@@ -192,11 +200,11 @@ def _make_sort_result(input_tensor, result, axis, descending, stable):
 
 @functools.wraps(_orig_torch_sort)
 def _paddle_compat_sort(input, *args, **kwargs):
-    if 'dim' in kwargs:
-        kwargs['axis'] = kwargs.pop('dim')
-    axis = kwargs.get('axis', args[0] if args else -1)
-    descending = kwargs.get('descending', False)
-    stable = kwargs.get('stable', False)
+    if "dim" in kwargs:
+        kwargs["axis"] = kwargs.pop("dim")
+    axis = kwargs.get("axis", args[0] if args else -1)
+    descending = kwargs.get("descending", False)
+    stable = kwargs.get("stable", False)
     result = _orig_torch_sort(input, *args, **kwargs)
     return _make_sort_result(input, result, axis, descending, stable)
 
@@ -207,11 +215,11 @@ _orig_tensor_sort = torch.Tensor.sort
 
 
 def _paddle_compat_tensor_sort(self, *args, **kwargs):
-    if 'dim' in kwargs:
-        kwargs['axis'] = kwargs.pop('dim')
-    axis = kwargs.get('axis', args[0] if args else -1)
-    descending = kwargs.get('descending', False)
-    stable = kwargs.get('stable', False)
+    if "dim" in kwargs:
+        kwargs["axis"] = kwargs.pop("dim")
+    axis = kwargs.get("axis", args[0] if args else -1)
+    descending = kwargs.get("descending", False)
+    stable = kwargs.get("stable", False)
     result = _orig_tensor_sort(self, *args, **kwargs)
     return _make_sort_result(self, result, axis, descending, stable)
 
@@ -226,7 +234,7 @@ _orig_torch_randn = torch.randn
 
 @functools.wraps(_orig_torch_randn)
 def _paddle_compat_randn(*args, **kwargs):
-    kwargs.pop('generator', None)
+    kwargs.pop("generator", None)
     return _orig_torch_randn(*args, **kwargs)
 
 
@@ -237,7 +245,7 @@ _orig_torch_rand = torch.rand
 
 @functools.wraps(_orig_torch_rand)
 def _paddle_compat_rand(*args, **kwargs):
-    kwargs.pop('generator', None)
+    kwargs.pop("generator", None)
     return _orig_torch_rand(*args, **kwargs)
 
 
@@ -245,15 +253,22 @@ torch.rand = _paddle_compat_rand
 
 
 # §52: torch.cuda.init() — paddle.cuda has no init(); patch as no-op (§52)
-if not hasattr(torch.cuda, 'init') or callable(getattr(torch.cuda, 'init', None)) is False:
+if (
+    not hasattr(torch.cuda, "init")
+    or callable(getattr(torch.cuda, "init", None)) is False
+):
+
     def _paddle_compat_cuda_init():
         pass
+
     torch.cuda.init = _paddle_compat_cuda_init
 else:
     _orig_cuda_init = torch.cuda.init
+
     def _paddle_compat_cuda_init():
         try:
             _orig_cuda_init()
         except Exception:
             pass
+
     torch.cuda.init = _paddle_compat_cuda_init
