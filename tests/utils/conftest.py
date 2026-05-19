@@ -7,6 +7,7 @@
 # §48: tensor.clamp_min/clamp_max — PyTorch aliases missing on Paddle
 # §49: torch.sort — axis vs dim + returns only values not (values,indices)
 # §50: torch.randn/rand(generator=) — Paddle does not support generator
+import contextlib
 import functools
 import torch
 from collections import namedtuple as _namedtuple
@@ -54,8 +55,8 @@ def _paddle_compat_assert_close(actual, expected, *args, **kwargs):
         _orig_assert_close(actual, expected, *args, **kwargs)
     except RuntimeError as e:
         if _is_paddle_isclose_dtype_error(e):
-            rtol = kwargs.get("rtol", None)
-            atol = kwargs.get("atol", None)
+            rtol = kwargs.get("rtol")
+            atol = kwargs.get("atol")
             dt = actual.dtype if isinstance(actual, torch.Tensor) else torch.float32
             if rtol is None:
                 rtol = (
