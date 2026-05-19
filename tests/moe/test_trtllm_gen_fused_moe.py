@@ -94,6 +94,9 @@ class CUDAGraphMoE:
         self.input_tensor = None
         self.output_tensor = None
         self.is_captured = False
+        self._static_quantized = (
+            None  # §54: pre-allocated quantized input buffer for CUDA graph capture
+        )
 
     def capture(self, hidden_states_sample, **runtime_args):
         """Capture CUDA graph with the given sample input."""
@@ -107,12 +110,18 @@ class CUDAGraphMoE:
             )
 
         # Create stream
-        err, self.stream = runtime.cudaStreamCreate()
-        check_cuda(err)
-
-        # Get the raw stream pointer for PyTorch
-        stream_ptr = int(self.stream)
-        torch_stream = torch.cuda.ExternalStream(stream_ptr)
+        if hasattr(torch.cuda, "ExternalStream"):
+            err, self.stream = runtime.cudaStreamCreate()
+            check_cuda(err)
+            stream_ptr = int(self.stream)
+            torch_stream = torch.cuda.ExternalStream(stream_ptr)
+        else:
+            # §53: Paddle compat - torch.cuda.ExternalStream not available.
+            # Use torch.cuda.Stream() (Paddle-managed) + wrap raw ptr as cudaStream_t.
+            _ts = torch.cuda.Stream()
+            self._torch_stream_ref = _ts  # prevent GC
+            torch_stream = _ts
+            self.stream = runtime.cudaStream_t(_ts.stream_base.cuda_stream)
 
         # Store input tensor reference (will be updated in place during launch)
         self.input_tensor = hidden_states_sample.clone()
@@ -125,6 +134,22 @@ class CUDAGraphMoE:
         # Synchronize our stream after warmup
         err = runtime.cudaStreamSynchronize(self.stream)[0]
         check_cuda(err)
+
+        # §54: Pre-allocate static quantized input buffers before CUDA graph capture.
+        # In Paddle compat, torch.empty() triggers cudaMemAlloc which is not allowed
+        # during stream capture (cudaErrorStreamCaptureUnsupported / error 900).
+        # We run quantize_inputs once here (outside capture) and store the result tensors
+        # as static buffers; during capture, _run_moe_computation reuses them via copy_().
+        if not hasattr(torch.cuda, "ExternalStream"):
+            _q = self.moe_impl.quantize_inputs(
+                self.input_tensor,
+                self.config["hidden_states_scale_global"],
+                is_swizzling=False,
+            )
+            self._static_quantized = {
+                k: v.clone() if isinstance(v, torch.Tensor) else v
+                for k, v in _q.items()
+            }
 
         # Begin capture
         err, self.graph = runtime.cudaGraphCreate(0)
@@ -155,6 +180,23 @@ class CUDAGraphMoE:
         # Update input tensor in place
         self.input_tensor.copy_(hidden_states_new)
 
+        # §54: Paddle compat - re-quantize inputs before graph replay.
+        # quantize_inputs is outside the captured graph (see _run_moe_computation),
+        # so we must update self._static_quantized with the new input here.
+        if self._static_quantized is not None:
+            _q = self.moe_impl.quantize_inputs(
+                self.input_tensor,
+                self.config["hidden_states_scale_global"],
+                is_swizzling=False,
+            )
+            for k, v in _q.items():
+                if isinstance(v, torch.Tensor) and isinstance(
+                    self._static_quantized.get(k), torch.Tensor
+                ):
+                    self._static_quantized[k].copy_(v)
+                else:
+                    self._static_quantized[k] = v
+
         # Launch graph
         err = runtime.cudaGraphLaunch(self.graph_exec, self.stream)[0]
         check_cuda(err)
@@ -175,20 +217,32 @@ class CUDAGraphMoE:
             check_cuda(err)
             self.graph = None
         if self.stream is not None:
-            err = runtime.cudaStreamDestroy(self.stream)[0]
-            check_cuda(err)
+            if not hasattr(self, "_torch_stream_ref"):
+                # Only destroy cudart-created streams, not Paddle-managed ones
+                err = runtime.cudaStreamDestroy(self.stream)[0]
+                check_cuda(err)
             self.stream = None
+            self._torch_stream_ref = None  # release Paddle stream ref
         self.input_tensor = None
         self.output_tensor = None
         self.is_captured = False
 
     def _run_moe_computation(self, runtime_args):
         """Run the MoE computation."""
-        input_quantized = self.moe_impl.quantize_inputs(
-            self.input_tensor,
-            self.config["hidden_states_scale_global"],
-            is_swizzling=False,
-        )
+        if self._static_quantized is not None:
+            # §54: Paddle compat CUDA graph capture fix.
+            # torch.empty() in Paddle compat calls cudaMemAlloc, which is forbidden
+            # during stream capture (cudaErrorStreamCaptureUnsupported / error 900).
+            # Solution: quantize_inputs runs OUTSIDE the capture window (pre-populated
+            # into self._static_quantized), and _run_moe_computation during capture
+            # uses those static buffers directly - no torch.empty() inside capture.
+            input_quantized = self._static_quantized
+        else:
+            input_quantized = self.moe_impl.quantize_inputs(
+                self.input_tensor,
+                self.config["hidden_states_scale_global"],
+                is_swizzling=False,
+            )
 
         output = trtllm_fp4_block_scale_moe(
             routing_logits=runtime_args["expert_logits"],
