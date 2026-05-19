@@ -68,3 +68,19 @@ python3 -m pytest tests/grouped_mm/ --tb=no -q
 # All 690 passed tests cover test_dsv3_fused_routing.py and test_dsv3_router_gemm.py
 # 4164 skips are environment-level (SM architecture/hardware constraints), not Paddle compat issues.
 python3.12 -m pytest tests/model_optimizations/ --tb=no -q
+
+# tests/comm: 29 PASS (2026-05-19)
+# Only test_dcp_alltoall.py is adaptable as a single-GPU test.
+# All multiprocessing/MPI/MNNVL/NVSHMEM tests skipped (too complex):
+# - test_all_gather_matmul.py: SKIP - torch.distributed._symmetric_memory missing at module level (§23) + multiprocessing
+# - test_allreduce_fusion_moe_unified_api.py: SKIP - multiprocessing
+# - test_allreduce_unified_api.py: SKIP - multiprocessing
+# - test_mixed_comm.py: SKIP - multiprocessing
+# - test_allreduce_negative.py: SKIP - MPI-based (mpirun)
+# - test_mnnvl_*.py: SKIP - MNNVL hardware required
+# - test_nvshmem*.py: SKIP - NVSHMEM required
+# - test_trtllm_allreduce_fusion.py, test_trtllm_allreduce.py, etc.: SKIP - multiprocessing
+# - test_vllm_custom_allreduce.py: SKIP - multiprocessing + NCCL
+# Fix: conftest.py §44-§48 + §52 monkey-patches (Paddle compat assert_close wraps ALL errors with
+#      "resulted in the unexpected exception above"; bfloat16/float16 isclose kernel missing)
+python3 -m pytest tests/comm/test_dcp_alltoall.py --tb=no -q
