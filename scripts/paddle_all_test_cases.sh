@@ -59,3 +59,12 @@ python3 -m pytest tests/utils/test_topk.py --ignore-glob="*test_topk_determinist
 # Skips are environment-level (cuDNN version), not Paddle compat issues.
 # The 4 passing validation tests confirm grouped_mm works cleanly in Paddle compat mode.
 python3 -m pytest tests/grouped_mm/ --tb=no -q
+
+# tests/model_optimizations: 690 PASS, 4164 SKIP (2026-05-19)
+# Fix: torch.sort monkey-patch in conftest.py (§51)
+#   - Paddle compat torch.sort returns values-only Tensor; wraps (values, indices) with _SortResult
+#   - Paddle compat torch.sort does not accept dim= kwarg; patch passes it as positional arg
+#   - MUST use stable=True in argsort for correct bfloat16 tie-breaking semantics
+# All 690 passed tests cover test_dsv3_fused_routing.py and test_dsv3_router_gemm.py
+# 4164 skips are environment-level (SM architecture/hardware constraints), not Paddle compat issues.
+python3.12 -m pytest tests/model_optimizations/ --tb=no -q
