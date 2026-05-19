@@ -608,9 +608,15 @@ def top_k(
             input, k, output_values=True, out_dtype=torch.int64
         )
         if sorted:
-            sorted_values, sort_indices = torch.sort(
-                output_values, dim=-1, descending=True
-            )
+            try:
+                sorted_values, sort_indices = torch.sort(
+                    output_values, -1, descending=True
+                )
+            except (ValueError, RuntimeError):
+                # Paddle compat: torch.sort returns only values tensor, not (values, indices)
+                _sv = torch.sort(output_values, -1, descending=True)
+                sorted_values = _sv[0] if isinstance(_sv, (tuple, list)) else _sv
+                sort_indices = torch.argsort(output_values, -1, descending=True)
             sorted_indices = torch.gather(indices, dim=-1, index=sort_indices)
             return sorted_values, sorted_indices
         return output_values, indices
@@ -646,9 +652,25 @@ def top_k(
 
     if sorted and not sorted_cuda:
         # Sort within each row by value (descending)
-        sorted_values, sort_indices = torch.sort(
-            output_values, dim=-1, descending=True, stable=deterministic
-        )
+        try:
+            sorted_values, sort_indices = torch.sort(
+                output_values, -1, descending=True, stable=deterministic
+            )
+        except (ValueError, RuntimeError):
+            # Paddle compat: torch.sort returns only values tensor, not (values, indices)
+            try:
+                _sv2 = torch.sort(
+                    output_values, -1, descending=True, stable=deterministic
+                )
+            except TypeError:
+                _sv2 = torch.sort(output_values, -1, descending=True)
+            sorted_values = _sv2[0] if isinstance(_sv2, (tuple, list)) else _sv2
+            try:
+                sort_indices = torch.argsort(
+                    output_values, -1, descending=True, stable=deterministic
+                )
+            except TypeError:
+                sort_indices = torch.argsort(output_values, -1, descending=True)
         sorted_indices = torch.gather(indices, dim=-1, index=sort_indices)
         return sorted_values, sorted_indices
 

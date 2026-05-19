@@ -709,7 +709,7 @@ def test_top_k_ragged_transform_out_of_length(num_rows, max_len, k, dtype):
     valid_max = offsets + lengths
     output = output.clamp_min(0)
     assert torch.all((output >= valid_min[:, None]) & (output < valid_max[:, None])), (
-        f"Out of length Error. {valid_min=}, {valid_max=}, {output.max(dim=1).values=}, {output.min(dim=1).values=}"
+        f"Out of length Error. {valid_min=}, {valid_max=}, {output.float().amax(1)=}, {output.float().amin(1)=}"
     )
 
 
@@ -1611,8 +1611,8 @@ def _build_fp32_long_seq_pivot_mismatch_inputs():
 
 def _assert_unordered_indices_match(output, expected):
     """Compare index sets row-wise while ignoring order under ties."""
-    output_sorted = torch.sort(output, dim=-1).values.to(torch.long)
-    expected_sorted = torch.sort(expected, dim=-1).values.to(torch.long)
+    output_sorted = torch.sort(output, -1)[0].to(torch.long)
+    expected_sorted = torch.sort(expected, -1)[0].to(torch.long)
     assert torch.equal(
         output_sorted,
         expected_sorted,
@@ -2564,14 +2564,14 @@ def test_topk_clusters_exact_correctness(
         abs_err = 0.125 if dtype == torch.bfloat16 else 1e-5
         rel_err = 0.1 if dtype == torch.bfloat16 else 1e-5
         torch.testing.assert_close(
-            values.min(dim=-1).values,
-            ref_values.min(dim=-1).values,
+            values.float().amin(-1),
+            ref_values.float().amin(-1),
             rtol=rel_err,
             atol=abs_err,
         )
         torch.testing.assert_close(
-            values.max(dim=-1).values,
-            ref_values.max(dim=-1).values,
+            values.float().amax(-1),
+            ref_values.float().amax(-1),
             rtol=rel_err,
             atol=abs_err,
         )

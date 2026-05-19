@@ -102,7 +102,9 @@ def test_sampling_freq(vocab_size, distribution, zero_ratio):
     freq = counter.float() / num_trials
 
     assert torch.all(counter[zero_indices] == 0)
-    similarity = torch.cosine_similarity(freq, probs)
+    similarity = torch.nn.functional.cosine_similarity(
+        freq.unsqueeze(0), probs.unsqueeze(0)
+    ).squeeze()
     assert similarity > 0.99, f"similarity: {similarity}"
 
 

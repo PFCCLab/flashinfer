@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import contextlib
 import functools
 import math
 from enum import Enum
@@ -319,7 +320,31 @@ def get_gpu_memory_bandwidth(device: torch.device) -> float:
 @functools.cache
 def get_shared_bytes_per_block_optin(device: torch.device) -> int:
     cap = torch.cuda.get_device_properties(device.index)
-    return cap.shared_memory_per_block_optin
+    if hasattr(cap, "shared_memory_per_block_optin"):
+        return cap.shared_memory_per_block_optin
+    # Paddle compat: _gpuDeviceProperties lacks this attr; query via CUDA Runtime
+    try:
+        import ctypes
+
+        _cudart = ctypes.CDLL("libcudart.so")
+        attr_val = ctypes.c_int(0)
+        # cudaDevAttrMaxSharedMemoryPerBlockOptin = 74
+        ret = _cudart.cudaDeviceGetAttribute(
+            ctypes.byref(attr_val),
+            74,
+            device.index if device.index is not None else 0,
+        )
+        if ret == 0:
+            return attr_val.value
+    except Exception:
+        pass
+    # Heuristic fallback: SM>=9 -> 232448, SM>=8 -> 167936, else -> 98304
+    major = cap.major
+    if major >= 9:
+        return 232448
+    elif major >= 8:
+        return 167936
+    return 98304
 
 
 def _check_cached_qkv_data_type(
@@ -1272,10 +1297,35 @@ def backend_requirement(
     return decorator
 
 
+class _PaddleCompatGenerator:
+    # Generator wrapper: bridges paddle.cuda to torch.Generator get_state/set_state
+    # State: CPU uint8 tensor of 16 bytes = two int64 values (seed, offset).
+
+    def __init__(self, device_index: int = 0) -> None:
+        import paddle as _paddle
+
+        _cuda_gen = _paddle.framework.core.default_cuda_generator(device_index)
+        seed = _cuda_gen.initial_seed()
+        self._state: torch.Tensor = torch.tensor(
+            [seed, 0], dtype=torch.int64, device=torch.device("cpu")
+        )
+
+    def get_state(self) -> torch.Tensor:
+        return self._state.view(torch.uint8)
+
+    def set_state(self, state: torch.Tensor) -> None:
+        self._state = state.view(torch.int64).clone()
+
+
 @functools.cache
 def get_default_generators(device: torch.device):
-    torch.cuda.init()
-    return torch.cuda.default_generators[device.index]
+    with contextlib.suppress(AttributeError):
+        torch.cuda.init()  # paddle.cuda has no init() (§52)
+    try:
+        return torch.cuda.default_generators[device.index]
+    except AttributeError:
+        # paddle.cuda has no default_generators; use a Paddle-backed compat wrapper
+        return _PaddleCompatGenerator(device.index)
 
 
 def prepare_jit_additional_args(
