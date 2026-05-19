@@ -84,3 +84,6 @@ python3.12 -m pytest tests/model_optimizations/ --tb=no -q
 # Fix: conftest.py §44-§48 + §52 monkey-patches (Paddle compat assert_close wraps ALL errors with
 #      "resulted in the unexpected exception above"; bfloat16/float16 isclose kernel missing)
 python3 -m pytest tests/comm/test_dcp_alltoall.py --tb=no -q
+
+# PASS (2026-05-19) §53+§54: CUDAGraphMoE ExternalStream + CUDA graph capture fix
+python3.12 -m pytest -rs "tests/moe/test_trtllm_gen_fused_moe.py::test_renormalize_routing[BF16_logits-Swiglu-Shuffled_MajorK-Renorm-NvFP4xNvFP4-384-1024-8-RandomHiddenStates]"
