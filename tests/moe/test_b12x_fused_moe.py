@@ -32,6 +32,13 @@ Tests include:
 - ReLU2 (non-gated) activation for Nemotron-Super
 """
 
+import pytest as _pg
+try:
+    from flashinfer.cute_dsl import is_cute_dsl_available as _cda; _cda
+except Exception as _e:
+    _pg.skip(f'cute_dsl unavailable: {_e}', allow_module_level=True)
+del _pg
+
 import pytest
 import torch
 from torch.nn import functional as F

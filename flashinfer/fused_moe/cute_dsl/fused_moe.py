@@ -234,7 +234,7 @@ def _moe_core_impl(
     # Record event for async memset synchronization
     if use_async_memset:
         main_event.record()
-        moe_output.record_stream(aux_stream)
+        moe_output._record_stream(aux_stream)
 
     # Step 2: GEMM1 + SwiGLU
     intermediate, intermediate_sf = (
@@ -270,10 +270,10 @@ def _moe_core_impl(
     # TODO: add the TRTLLM all-to-all and `moe_output_memset` behavior
     if use_async_memset:
         with torch.cuda.stream(aux_stream):
-            main_event.wait()
+            aux_stream.wait_event(main_event)  # §38 Paddle: event.wait() -> stream.wait_event()
             moe_output.zero_()
             memset_event.record()
-        memset_event.wait()
+        torch.cuda.current_stream().wait_event(memset_event)  # §38 Paddle: event.wait() -> stream.wait_event()
     else:
         moe_output.zero_()
 

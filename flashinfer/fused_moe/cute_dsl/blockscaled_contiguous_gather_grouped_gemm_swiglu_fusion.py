@@ -51,6 +51,14 @@ import cuda.bindings.driver as cuda
 import torch
 
 from flashinfer.utils import get_compute_capability
+
+def _get_torch_stream_ptr(torch_stream):
+    """Extract raw CUDA stream ptr for cuda-python CUstream (Paddle compat)."""
+    if hasattr(torch_stream, '__cuda_stream__'):
+        r = torch_stream.__cuda_stream__()
+        return r[1] if isinstance(r, tuple) else int(r)
+    return torch_stream.cuda_stream
+
 from flashinfer.cute_dsl.utils import (
     get_cutlass_dtype,
     cutlass_to_torch_dtype,
@@ -63,6 +71,8 @@ from flashinfer.cute_dsl.utils import (
 from .blackwell.blockscaled_contiguous_gather_grouped_gemm_swiglu_fusion import (
     BlockScaledContiguousGatherGroupedGemmKernel,
 )
+
+
 
 # Re-export the kernel class
 
@@ -547,7 +557,7 @@ def blockscaled_contiguous_gather_grouped_gemm_swiglu_fusion_nvfp4(
 
     # Get CUDA stream
     torch_stream = torch.cuda.current_stream()
-    stream = cuda.CUstream(torch_stream.cuda_stream)
+    stream = cuda.CUstream(_get_torch_stream_ptr(torch_stream))
 
     # Get or compile the kernel (cached by dtype and tactic parameters)
     compiled_gemm = _get_compiled_gather_kernel(
